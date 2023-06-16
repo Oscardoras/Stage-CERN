@@ -1,0 +1,182 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english,main=french]{babel}
+\usepackage[babel=true]{csquotes}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{amsmath}
+\usepackage{algorithm2e}
+\usepackage{hyperref}
+\usepackage[toc,page]{appendix}
+\usepackage[backend=biber,style=alphabetic]{biblatex}
+
+
+\graphicspath{ {../images/} }
+\addbibresource{refs.bib}
+\nocite{*}
+\RestyleAlgo{ruled}
+\renewcommand{\appendixpagename}{Annexes}
+\renewcommand{\appendixtocname}{Annexes}
+\hypersetup{
+    colorlinks=true, %colorise les liens
+    breaklinks=true, %permet le retour  la ligne dans les liens trop longs
+    urlcolor=blue, %couleur des hyperliens
+    linkcolor=black, %couleur des liens internes
+    bookmarksopen=true, %si les signets Acrobat sont crs, les afficher compltement.
+}
+
+
+\title{Rapport de stage}
+\author{Oscar Buon}
+\date{\today}
+
+
+\begin{document}
+
+
+\begin{titlepage}
+    \centering
+    \begin{minipage}{0.45\textwidth}
+        \includegraphics[width=\textwidth]{logo_ISIMA_INP.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.45\textwidth}
+        \includegraphics[width=\textwidth]{logo_CERN.png}
+    \end{minipage}
+
+    \vfill
+
+	{\Large
+        Rapport d'élève ingénieur \par
+        Stage de 2ème année \par
+        Filière : Informatique des systèmes interactifs pour l’embarqué, la robotique et le virtuel \par
+    }
+
+	\vfill
+
+	{\huge\bfseries Speeding up LHCb software through compilation optimization \par}
+
+	\vfill
+
+	{\Large Présenté par : Oscar Buon \par}
+
+	\vfill
+
+	Responsable Entreprise : Sébastien Ponce \par
+	Responsable ISIMA : Mamadou Kanté
+
+	\vfill
+
+	\today
+\end{titlepage}
+
+
+\pagenumbering{Roman}
+\chapter*{Remerciements}
+    J'aimerais commencer par remercier Sébastien Ponce, mon tuteur de stage sans qui mon travail au CERN n'aurait pas été possible.
+
+    Je remercie égallement M. Mamadou Kanté, tuteur ISIMA et responsable de la fillière.
+
+    \bigskip
+    Je tiens aussi à remercier Alexandre Boyer qui m'a permis à l'occasion du forum ingénieur de trouver un stage au CERN.
+
+\tableofcontents
+
+\listoffigures
+
+
+\begin{abstract}
+
+    \vfill
+
+    Mots-clés : LHCb, Optimisation, Compilation avancée, CMake
+
+\end{abstract}
+
+\begin{otherlanguage}{english}
+\begin{abstract}
+
+    \vfill
+
+    Key words : LHCb, Optimization, Advanced compilation, CMake
+\end{abstract}
+\end{otherlanguage}
+
+
+\pagenumbering{arabic}
+\chapter*{Introduction}
+
+
+\chapter{Introduction}
+    \section{Présentation du CERN}
+    L'Organisation européenne pour la recherche nucléaire est le plus grabd laboratoire d'étude de la physique des particules.
+    Le centre, qui a été fondé en 1954, se situe sur la frontière franco-suisse à quelques kilomètres de Genève.
+
+    Une grande partie des recherches éffectuées au CERN utilisent différents accélérateurs departicules.
+    Le principe est de faire atteindre à des particules des vitesses proches de celle de la lumière pour qu'elles acquièrent une grande énergie, puis de les faire se collisionner.
+    La physique des particules prévoit l'apparition de nouvelles particules lors de ces collisions.
+    Ainsi en détectant les collisions au seins de l'accélérateur et en comparant avec la théorie, on peut la valdier ou l'invalider.
+
+    Il existe plusieurs accélérateurs et plusieurs expériences au CERN.
+    Le plus grand accélérateur est le Grand collisionneur de hadrons ou Large Hadron Collider (LHC) qui a été mis en fonction en 2008 et qui a une circonférence d'environ 27 kilomètres.
+    Il permet d'accélérer des protons à environ 7 Tev.
+    Sur le LHC sont installés 4 principales expériences qui sont des collaborations internationales : ATLAS, CMS, ALICE et LHCb.
+    Ces expériences prennent la forme de détecteurs. C'est à l'intérieur d'eux que se font les collisions dont les résidus sont détectés par plusieurs types de capteurs.
+
+    La mise en oeuvre des expériences du CERN a depuis longtemps nécessité le développement de nouvelles technologies.
+    Ainsi l'informatique et internet sont présent depuis longtemps afin de gérer la masse de données produites dans les détecteurs.
+    Des programmes comportants plusieurs millions de lignes de codes sont exécutées aux centres de calcul sur les sites du CERN mais aussi partout autour du monde grâce au "Grid".
+    Le CERN est aussi par exemple à l'origine du Web et a contribué au développement d'internet en Europe.
+
+    \section{L'expérience LHCb}
+    Le Large Hadron Collider beauty est l'une des 4 principales expériences installées sur le LHC.
+    Elle vise l'étude du quark b afin de mesurer l'asymétrie entre matière et antimatière.
+    La collaboration regroupe plus de 1200 personnes représentant plusieurs dizaines d'instituts.
+    L'expérience se situe sur le point 8 du LHC.
+
+    \section{Contexte}
+    Les différents instruments du capteur produisent un flux de données conséquent d'environ 3 To.
+    Une importante infrastructure informatique est donc nécessaire pour pouvoir les traiter.
+
+    LHCb utilise une pile de programmes (dont certains sont partagés avec d'autres expériences) qui traitent les données issues du détecteur.
+    On peut citer : Geant, Root, Gaudi, LHCb, Lbcom, Rec et Moore.
+    Cette pile contient plusieurs millions de lignes de codes qui peuvent avoir plusieurs décénies.
+    Son maintient est donc un enjeux majeur.
+
+
+
+\chapter{Méthode}
+    \section{Fusion des bibliothèques et modules dynamiques}
+        \subsection{Présentation}
+            La pile LHCb est découpée en centaines de petites parties.
+            Ce découpage existe d'abord pour des raisons historiques car cela permettait de plus facilement collaborer sur le même projet avant l'arrivée de Git.
+            Mais cela permet aussi de ne pas avoir à tout compiler et charger lorsqu'on a besoin que de travailler sur une partie en particulier.
+
+            De ce fait la pile une fois compilée se compose de centaines de bibliothèques et de modules dynamiques.
+            Cette architecture est certes plus simple à utiliser mais il pourrait être intéressant d'étudier si leur fusion en un seul grand exécutable permettrait une meilleur performance en production.
+
+        \subsection{Graphe des dépendances}
+            Déjà,
+
+    \section{Guided optimization}
+        \subsection{Profile-guided optimization}
+
+        \subsection{AutoFDO}
+
+        \subsection{Link time optimization}
+
+\chapter{Résultats}
+
+
+\chapter*{Conclusion}
+
+
+\printbibliography
+
+
+\begin{appendices}
+
+
+\end{appendices}
+
+\end{document}

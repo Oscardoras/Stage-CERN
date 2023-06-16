@@ -1,0 +1,166 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[babel=true]{csquotes}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{amsmath}
+\usepackage{algorithm2e}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage[toc,page]{appendix}
+\usepackage[backend=biber,style=alphabetic]{biblatex}
+
+
+\graphicspath{ {../images/} }
+\usetheme{Copenhagen}
+\setbeamertemplate{page number in head/foot}[totalframenumber]
+
+
+\title{Profile-guided optimization}
+\subtitle{Speeding up LHCb software through compilation optimization}
+\author{Oscar Buon}
+
+
+\begin{document}
+
+\begin{frame}
+    \centering
+    \begin{minipage}{0.2\textwidth}
+        \includegraphics[width=\textwidth]{logo_ISIMA_INP.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.2\textwidth}
+        \includegraphics[width=\textwidth]{logo_CERN.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.2\textwidth}
+        \includegraphics[width=\textwidth]{logo_LHCb.png}
+    \end{minipage}
+
+    \maketitle
+
+    Supervisor: Sebastien Ponce
+\end{frame}
+
+\part{Introduction}
+\section*{Introduction}
+\part{Body}
+
+    \begin{frame}
+        \frametitle{Table of contents}
+        \tableofcontents
+    \end{frame}
+
+\section{Static libraries and modules}
+
+    \subsection{Graphviz for printing graphs}
+
+    \begin{frame}[fragile]
+        Graphviz in CMake to create dependency graphs:
+        \begin{itemize}
+            \item CMake arg: \verb'--graphviz=path/to/files.dot'
+            \item Convert to SVG: \verb'dot -Tsvg -o path/to/file.svg path/to/file.dot'
+            \item Make arg: \verb'CMAKEARGS="--graphviz=path/to/files.dot"'
+            \item Setting \verb'GRAPHVIZ_EXTERNAL_LIBS' to \verb'FALSE' is usefull.
+        \end{itemize}
+
+    \end{frame}
+
+    \subsection{Static libraries}
+
+    \begin{frame}[fragile]
+        \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
+
+        Replace \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
+    \end{frame}
+
+    \subsection{Static modules}
+
+    \begin{frame}[fragile]
+        By using previous static libraries.
+        Need to add:
+        \begin{itemize}
+            \item \verb'-Wl,--whole-archive' link option to the target and link them to the final executable.
+            \item \verb'-Wl,--whole-archive' and \verb'-Wl,--allow-multiple-definition' link option to the executable.
+            \item the global link option \verb'-Wl,--export-dynamic'
+        \end{itemize}
+        Without these options modules cannot be initialized.
+
+        There may still be bugs with the functors that can't find some symbols.
+    \end{frame}
+
+    \begin{frame}[fragile]
+        The standard method to run test with python is not working. Need to run directly the executable with a json options file:
+        \begin{lstlisting}[language=bash,basicstyle=\tiny,breaklines]
+            build.x86_64_v3-centos7-gcc11+detdesc-opt+g/run ./build.x86_64_v3-centos7-gcc11+detdesc-opt+g/Gaudi/Gaudi/Gaudi_static options.json
+        \end{lstlisting}
+    \end{frame}
+
+\section{Profile-guided optimization}
+
+    \subsection{Profile-guided optimization}
+
+    \begin{frame}
+        Principle:
+        \begin{itemize}
+            \item Compiling the programm
+            \item Running it to create profiles (counters)
+            \item Recompiling the programm with the profiles
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}
+        Improvements:
+        \begin{itemize}
+            \item Inlining
+            \item Block ordering
+            \item Register allocation
+            \item Virtual call speculation
+            \item Dead code separation
+        \end{itemize}
+    \end{frame}
+
+    \subsection{Link-time optimization}
+
+    \begin{frame}
+        Allow the linker to perform optimizations that take account of all translation units.
+    \end{frame}
+
+    \subsection{Final Building pipeline}
+
+    \begin{frame}[fragile]
+        \begin{itemize}
+            \item Compiling the programm with \verb'-fprofile-generate'
+            \item Running it to create profiles
+            \item Recompiling the programm with \verb'-flto -fprofile-use -fprofile-correction'
+        \end{itemize}
+    \end{frame}
+
+\section{Results}
+
+    \begin{frame}[fragile]
+        Test: \verb'hlt2_pp_thor' ($6 \times 1000$ events)
+        \begin{center}
+            \begin{tabular}{ c c c }
+                Optimization & Acceleration & Confidence interval ($2\sigma$) \\
+                LTO & $0.17\%$ & $\pm 1.12\%$ \\
+                LTO \& PGO & $6.74\%$ & $\pm 1.44\%$ \\
+                Static LTO & $0.87\%$ & $\pm 0.60\%$ \\
+                Static LTO \& PGO & $6.88\%$ & $\pm 0.83\%$
+            \end{tabular}
+        \end{center}
+    \end{frame}
+
+\part{Conclusion}
+\section*{Conclusion}
+
+    \begin{frame}
+        \frametitle{Conclusion}
+
+        \begin{itemize}
+            \item Using LTO \& PGO makes the programm running faster.
+            \item Using static libraries and modules doesn't seem to be usefull and leads to some bugs.
+        \end{itemize}
+    \end{frame}
+
+\end{document}
