@@ -51,11 +51,50 @@
         \tableofcontents
     \end{frame}
 
+    \begin{frame}
+        \frametitle{CERN}
+
+        Intergovernmental organization on France-Switzerland border.
+
+        About  15,000 people working at CERN.
+
+        Large Hadron Collider (LHC): particle collider of 27 km.
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{LHCb}
+
+        One of the 4 main experiments installed on the LHC.
+
+        More than 1,200 people working for the collaboration.
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Computing}
+
+        Analyzes data from the detector.
+        Several TB/s.
+
+        The computing group has to maintain software with several million lines of code which some are 30 years old.
+        Moreover the code is mainly written by non-software engineers.
+    \end{frame}
+
 \section{Static libraries and modules}
+
+    \begin{frame}[fragile]
+        \frametitle{Context}
+
+        Worked on a stack with one main CMake:
+        \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
+
+        Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
+    \end{frame}
 
     \subsection{Graphviz for printing graphs}
 
     \begin{frame}[fragile]
+        \frametitle{Graphviz for printing graphs}
+
         Graphviz in CMake to create dependency graphs:
         \begin{itemize}
             \item CMake arg: \verb'--graphviz=path/to/files.dot'
@@ -69,6 +108,8 @@
     \subsection{Static libraries}
 
     \begin{frame}[fragile]
+        \frametitle{Static libraries}
+
         \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
 
         Replace \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
@@ -77,6 +118,8 @@
     \subsection{Static modules}
 
     \begin{frame}[fragile]
+        \frametitle{Static modules}
+
         By using previous static libraries.
         Need to add:
         \begin{itemize}
@@ -91,7 +134,7 @@
 
     \begin{frame}[fragile]
         The standard method to run test with python is not working. Need to run directly the executable with a json options file:
-        \begin{lstlisting}[language=bash,basicstyle=\tiny,breaklines]
+        \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
             build.x86_64_v3-centos7-gcc11+detdesc-opt+g/run ./build.x86_64_v3-centos7-gcc11+detdesc-opt+g/Gaudi/Gaudi/Gaudi_static options.json
         \end{lstlisting}
     \end{frame}
@@ -101,6 +144,8 @@
     \subsection{Profile-guided optimization}
 
     \begin{frame}
+        \frametitle{Profile-guided optimization}
+
         Principle:
         \begin{itemize}
             \item Compiling the programm
@@ -123,12 +168,16 @@
     \subsection{Link-time optimization}
 
     \begin{frame}
+        \frametitle{Link-time optimization}
+
         Allow the linker to perform optimizations that take account of all translation units.
     \end{frame}
 
-    \subsection{Final Building pipeline}
+    \subsection{Final building pipeline}
 
     \begin{frame}[fragile]
+        \frametitle{Final building pipeline}
+
         \begin{itemize}
             \item Compiling the programm with \verb'-fprofile-generate'
             \item Running it to create profiles
@@ -139,6 +188,8 @@
 \section{Results}
 
     \begin{frame}[fragile]
+        \frametitle{Results}
+
         Test: \verb'hlt2_pp_thor' ($6 \times 1000$ events)
         \begin{center}
             \begin{tabular}{ c c c }
