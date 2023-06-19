@@ -90,25 +90,15 @@
     \begin{frame}
         \frametitle{Physics Computing}
 
-        The detector needs an important computing infrastructure to work properly.
+        Important computing infrastructure.
 
-        The detector produces about TB/s of data that are analyzed to reconstruct the trajectories and the properties of the particles.
-
-        Then statistics are made from these reconstructed particles.
-        Moreover simulations are made through the software.
-        Then statistics are comapred to the simulations.
-
-        Some computing analysis are dispatched in servers arround the world (grid).
+        \includegraphics[width=\textwidth]{LHCb_stack.png}
     \end{frame}
 
     \begin{frame}
         \frametitle{Computing group}
 
-        A first level software will filter data to keep interresting tracks.
-
-        Then data are stored in a buffer for hours to be analyzed in a second level software.
-
-        Some computing analysis are dispatched in servers arround the world (grid).
+        \includegraphics[width=0.75\textwidth]{LHCb_3D.png}
 
         The computing group has to maintain this infrastructure for LHCb.
     \end{frame}
@@ -116,17 +106,16 @@
     \begin{frame}
         \frametitle{Software}
 
-        The software is a stack programms:
+        The software is a stack of programms:
 
         \begin{itemize}
-            \item The base of the stack is composed of software like ROOT or Gaudi that are shared with other experiments.
-            \item On top of them there are Detector, LHCb or Lbcom that modelise the experiment.
-            \item And then there are Rec that reconstruct the tracks and the simulation programms.
-            \item Some other programms are to use or to test the others, like Moore.
+            \item Common base shared with other experiments.
+            \item LHCb specific programms.
+            \item Reconstruction, simultation...
         \end{itemize}
 
-        There are several million lines of code which some are 30 years old.
-        Moreover the code is mainly written by non-software engineers.
+        Millions lines of code which some are 30 years old.
+        Code mainly written by non-software engineers.
 
         All of this is running on thousands of multithreaded Linux servers.
     \end{frame}
@@ -137,6 +126,10 @@
     \end{frame}
 
 \section{Graphviz for printing graphs}
+
+    \begin{frame}
+        \tableofcontents[currentsection]
+    \end{frame}
 
     \begin{frame}[fragile]
         \frametitle{Graphviz for printing graphs}
@@ -159,15 +152,8 @@
 
 \section{Static libraries and modules}
 
-    \subsection{Context}
-
-    \begin{frame}[fragile]
-        \frametitle{Context}
-
-        Worked on a stack with one main CMake:
-        \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
-
-        Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
+    \begin{frame}
+        \tableofcontents[currentsection]
     \end{frame}
 
     \subsection{Library types}
@@ -176,7 +162,7 @@
         \frametitle{Library types}
 
         \begin{itemize}
-            \item STATIC: an archive of object files that are merged to the executable at link time.
+            \item STATIC: archive of object files that are merged to the executable at link time.
             \item SHARED: .so (Linux) file that is automatically linked to the executable at runtime (when starting it).
             Allows several executables to link with a library installed on the system.
             \item MODULE: same as shared but the module is loaded on demand via the \verb'dlopen' function, so not automatically.
@@ -189,7 +175,7 @@
         \frametitle{Static libraries}
 
         Gaudi provides CMake functions to create libraries, modules or executables.
-        Then we just have to create a new function for static libraries by copying the one for shared libraries:
+        Creating a new function for static libraries by copying the one for shared libraries:
 
         \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
 
@@ -204,35 +190,29 @@
         By using previous static libraries.
         Need to add:
         \begin{itemize}
-            \item \verb'-Wl,--whole-archive' link option while linking to the final executable.
-            \item \verb'-Wl,--whole-archive' and \verb'-Wl,--allow-multiple-definition' link option to the executable.
-            \item the global link option \verb'-Wl,--export-dynamic'
-        \end{itemize}
-    \end{frame}
-
-    \begin{frame}[fragile]
-        \frametitle{Explanation of flags}
-        \begin{itemize}
-            \item \verb'-Wl,--whole-archive' because without it the linker removes the code in the module that registers it.
-            Note that this could be an error in the linker because that behavior was not the same when using object files instead of static libaries.
+            \item \verb'-Wl,--whole-archive' because without the linker removes what seems to be unused code.
             \item \verb'-Wl,--allow-multiple-definition' because \verb'-Wl,--whole-archive' causes symbols to be included several times.
             \item \verb'-Wl,--export-dynamic' to allow functors to access to symbols.
         \end{itemize}
 
-        We have to notice that some of these flags seem to be Hacks and are not recommended to be used.
-        Moreover there may still be bugs, especially with functors.
+        These flags seem to be Hacks and are not recommended to be used.
+        There may still be bugs, especially with functors.
     \end{frame}
 
     \begin{frame}[fragile]
-        The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $.
+        The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $ (\verb'opt+g').
 
-        The standard method to run test with python is not working. Need to run directly the executable with a json options file:
+        Standard method to run test with python not working. Need to run directly the executable with a json options file:
         \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
             build.x86_64_v3-centos7-gcc11+detdesc-opt+g/run ./build.x86_64_v3-centos7-gcc11+detdesc-opt+g/Gaudi/Gaudi/Gaudi_static options.json
         \end{lstlisting}
     \end{frame}
 
 \section{Profile-guided optimization}
+
+    \begin{frame}
+        \tableofcontents[currentsection]
+    \end{frame}
 
     \subsection{Profile-guided optimization}
 
@@ -247,12 +227,13 @@
             \item Virtual call speculation
             \item Dead code separation
         \end{itemize}
-        But sometimes these heuristics are wrong.
+        Makes programms running several times faster.
+        But a few times these heuristics are wrong.
     \end{frame}
 
 
     \begin{frame}
-        A better way for the compiler should having running data.
+        A better way for the compiler should be knowing running behavior.
         The the principle of PGO is:
         \begin{itemize}
             \item Compiling the programm with instrumentation.
@@ -265,7 +246,11 @@
     \begin{frame}
         \frametitle{Link-time optimization}
 
-        Allows the linker to perform optimizations that take account of all translation units.
+        C programm composed of translation units (1 translation unit $ \approx $ 1 .c file).
+
+        Compiler cannot optimize accross them by default.
+
+        LTO allows the linker to perform optimizations that take account of all translation units.
     \end{frame}
 
     \subsection{Final building pipeline}
@@ -284,7 +269,7 @@
 \section*{Conclusion}
 
     \begin{frame}[fragile]
-        \frametitle{Results}
+        \frametitle{Conclusion}
 
         Test: \verb'hlt2_pp_thor' ($6 \times 1000$ events)
         \begin{center}
@@ -296,15 +281,22 @@
                 Static LTO \& PGO & $6.88\%$ & $\pm 0.83\%$
             \end{tabular}
         \end{center}
-    \end{frame}
-
-    \begin{frame}
-        \frametitle{Conclusion}
 
         \begin{itemize}
             \item Using LTO \& PGO makes the programm running faster.
             \item Using static libraries and modules doesn't seem to be usefull and leads to some bugs.
         \end{itemize}
+    \end{frame}
+
+    \appendix
+
+    \begin{frame}[fragile]
+        \frametitle{Context}
+
+        Worked on a stack with one main CMake:
+        \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
+
+        Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
     \end{frame}
 
 \end{document}
