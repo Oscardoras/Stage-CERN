@@ -47,39 +47,119 @@
 \part{Body}
 
     \begin{frame}
-        \frametitle{Table of contents}
-        \tableofcontents
-    \end{frame}
-
-    \begin{frame}
         \frametitle{CERN}
 
-        Intergovernmental organization on France-Switzerland border.
+        Intergovernmental particle physics on France-Switzerland border.
 
         About  15,000 people working at CERN.
 
-        Large Hadron Collider (LHC): particle collider of 27 km.
+        Made discoveries that led to Nobel Prizes.
+
+        World Wide Web was invented at CERN.
+    \end{frame}
+
+    \begin{frame}
+        \includegraphics[width=0.75\textwidth]{WEB.jpg}
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Large Hadron Collider (LHC)}
+
+        \begin{itemize}
+            \item Large Hadron Collider: particle collider
+            \item $ 27 km $ (biggest in the world)
+            \item $ \sim 100 m $ underground
+        \end{itemize}
+
+        \includegraphics[width=0.5\textwidth]{LHC.jpg}
     \end{frame}
 
     \begin{frame}
         \frametitle{LHCb}
 
-        One of the 4 main experiments installed on the LHC.
+        \begin{itemize}
+            \item One of the 4 main experiments installed on the LHC.
+            \item More than 1,200 people working for the collaboration.
+            \item Studies asymmetry between matter and antimatter via b-physics.
+            Collision of hadrons (heavy particles).
+        \end{itemize}
 
-        More than 1,200 people working for the collaboration.
+        \includegraphics[width=0.5\textwidth]{LHCb.jpg}
     \end{frame}
 
     \begin{frame}
-        \frametitle{Computing}
+        \frametitle{Physics Computing}
 
-        Analyzes data from the detector.
-        Several TB/s.
+        The detector needs an important computing infrastructure to work properly.
 
-        The computing group has to maintain software with several million lines of code which some are 30 years old.
+        The detector produces about TB/s of data that are analyzed to reconstruct the trajectories and the properties of the particles.
+
+        Then statistics are made from these reconstructed particles.
+        Moreover simulations are made through the software.
+        Then statistics are comapred to the simulations.
+
+        Some computing analysis are dispatched in servers arround the world (grid).
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Computing group}
+
+        A first level software will filter data to keep interresting tracks.
+
+        Then data are stored in a buffer for hours to be analyzed in a second level software.
+
+        Some computing analysis are dispatched in servers arround the world (grid).
+
+        The computing group has to maintain this infrastructure for LHCb.
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Software}
+
+        The software is a stack programms:
+
+        \begin{itemize}
+            \item The base of the stack is composed of software like ROOT or Gaudi that are shared with other experiments.
+            \item On top of them there are Detector, LHCb or Lbcom that modelise the experiment.
+            \item And then there are Rec that reconstruct the tracks and the simulation programms.
+            \item Some other programms are to use or to test the others, like Moore.
+        \end{itemize}
+
+        There are several million lines of code which some are 30 years old.
         Moreover the code is mainly written by non-software engineers.
+
+        All of this is running on thousands of multithreaded Linux servers.
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Table of contents}
+        \tableofcontents
+    \end{frame}
+
+\section{Graphviz for printing graphs}
+
+    \begin{frame}[fragile]
+        \frametitle{Graphviz for printing graphs}
+
+        Printing graphs was usefull to have an idea of the dependencies.
+
+        Graphviz in CMake to create dependency graphs:
+        \begin{itemize}
+            \item CMake arg: \verb'--graphviz=path/to/files.dot'
+            \item Convert to SVG: \verb'dot -Tsvg -o path/to/file.svg path/to/file.dot'
+            \item Make arg: \verb'CMAKEFLAGS="--graphviz=path/to/files.dot"'
+            \item Setting \verb'GRAPHVIZ_EXTERNAL_LIBS' to \verb'FALSE' is usefull.
+        \end{itemize}
+
+    \end{frame}
+
+    \begin{frame}
+        \includegraphics[width=\textwidth]{graphviz.png}
     \end{frame}
 
 \section{Static libraries and modules}
+
+    \subsection{Context}
 
     \begin{frame}[fragile]
         \frametitle{Context}
@@ -90,19 +170,17 @@
         Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
     \end{frame}
 
-    \subsection{Graphviz for printing graphs}
+    \subsection{Library types}
 
     \begin{frame}[fragile]
-        \frametitle{Graphviz for printing graphs}
+        \frametitle{Library types}
 
-        Graphviz in CMake to create dependency graphs:
         \begin{itemize}
-            \item CMake arg: \verb'--graphviz=path/to/files.dot'
-            \item Convert to SVG: \verb'dot -Tsvg -o path/to/file.svg path/to/file.dot'
-            \item Make arg: \verb'CMAKEARGS="--graphviz=path/to/files.dot"'
-            \item Setting \verb'GRAPHVIZ_EXTERNAL_LIBS' to \verb'FALSE' is usefull.
+            \item STATIC: an archive of object files that are merged to the executable at link time.
+            \item SHARED: .so (Linux) file that is automatically linked to the executable at runtime (when starting it).
+            Allows several executables to link with a library installed on the system.
+            \item MODULE: same as shared but the module is loaded on demand via the \verb'dlopen' function, so not automatically.
         \end{itemize}
-
     \end{frame}
 
     \subsection{Static libraries}
@@ -110,9 +188,12 @@
     \begin{frame}[fragile]
         \frametitle{Static libraries}
 
+        Gaudi provides CMake functions to create libraries, modules or executables.
+        Then we just have to create a new function for static libraries by copying the one for shared libraries:
+
         \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
 
-        Replace \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
+        And inside remplacing \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
     \end{frame}
 
     \subsection{Static modules}
@@ -123,16 +204,28 @@
         By using previous static libraries.
         Need to add:
         \begin{itemize}
-            \item \verb'-Wl,--whole-archive' link option to the target and link them to the final executable.
+            \item \verb'-Wl,--whole-archive' link option while linking to the final executable.
             \item \verb'-Wl,--whole-archive' and \verb'-Wl,--allow-multiple-definition' link option to the executable.
             \item the global link option \verb'-Wl,--export-dynamic'
         \end{itemize}
-        Without these options modules cannot be initialized.
-
-        There may still be bugs with the functors that can't find some symbols.
     \end{frame}
 
     \begin{frame}[fragile]
+        \frametitle{Explanation of flags}
+        \begin{itemize}
+            \item \verb'-Wl,--whole-archive' because without it the linker removes the code in the module that registers it.
+            Note that this could be an error in the linker because that behavior was not the same when using object files instead of static libaries.
+            \item \verb'-Wl,--allow-multiple-definition' because \verb'-Wl,--whole-archive' causes symbols to be included several times.
+            \item \verb'-Wl,--export-dynamic' to allow functors to access to symbols.
+        \end{itemize}
+
+        We have to notice that some of these flags seem to be Hacks and are not recommended to be used.
+        Moreover there may still be bugs, especially with functors.
+    \end{frame}
+
+    \begin{frame}[fragile]
+        The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $.
+
         The standard method to run test with python is not working. Need to run directly the executable with a json options file:
         \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
             build.x86_64_v3-centos7-gcc11+detdesc-opt+g/run ./build.x86_64_v3-centos7-gcc11+detdesc-opt+g/Gaudi/Gaudi/Gaudi_static options.json
@@ -146,16 +239,7 @@
     \begin{frame}
         \frametitle{Profile-guided optimization}
 
-        Principle:
-        \begin{itemize}
-            \item Compiling the programm
-            \item Running it to create profiles (counters)
-            \item Recompiling the programm with the profiles
-        \end{itemize}
-    \end{frame}
-
-    \begin{frame}
-        Improvements:
+        The compiler uses some heuristics to optimize some elements:
         \begin{itemize}
             \item Inlining
             \item Block ordering
@@ -163,14 +247,25 @@
             \item Virtual call speculation
             \item Dead code separation
         \end{itemize}
+        But sometimes these heuristics are wrong.
     \end{frame}
 
+
+    \begin{frame}
+        A better way for the compiler should having running data.
+        The the principle of PGO is:
+        \begin{itemize}
+            \item Compiling the programm with instrumentation.
+            \item Running it to create profiles (counters).
+            \item Recompiling the programm with the profiles.
+        \end{itemize}
+    \end{frame}
     \subsection{Link-time optimization}
 
     \begin{frame}
         \frametitle{Link-time optimization}
 
-        Allow the linker to perform optimizations that take account of all translation units.
+        Allows the linker to perform optimizations that take account of all translation units.
     \end{frame}
 
     \subsection{Final building pipeline}
@@ -185,7 +280,8 @@
         \end{itemize}
     \end{frame}
 
-\section{Results}
+\part{Conclusion}
+\section*{Conclusion}
 
     \begin{frame}[fragile]
         \frametitle{Results}
@@ -201,9 +297,6 @@
             \end{tabular}
         \end{center}
     \end{frame}
-
-\part{Conclusion}
-\section*{Conclusion}
 
     \begin{frame}
         \frametitle{Conclusion}
