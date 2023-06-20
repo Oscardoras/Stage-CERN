@@ -147,7 +147,7 @@
     \end{frame}
 
     \begin{frame}
-        \includegraphics[width=\textwidth]{graphviz.png}
+        \includegraphics[width=\textwidth]{graphviz_cropped.png}
     \end{frame}
 
 \section{Static libraries and modules}
@@ -291,12 +291,13 @@
     \appendix
 
     \begin{frame}[fragile]
-        \frametitle{Context}
+        \frametitle{Appendix}
 
-        Worked on a stack with one main CMake:
-        \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
-
-        Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
+        \begin{itemize}
+            \item Stack: \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
+            \item PGO: \scriptsize \url{https://gitlab.cern.ch/obuon/lhcb-pgo} \normalsize
+            \item Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
+        \end{itemize}
     \end{frame}
 
 \end{document}
