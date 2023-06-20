@@ -172,14 +172,17 @@
     \subsection{Static libraries}
 
     \begin{frame}[fragile]
-        \frametitle{Static libraries}
+        \frametitle{Gaudi Static libraries}
 
-        Gaudi provides CMake functions to create libraries, modules or executables.
-        Creating a new function for static libraries by copying the one for shared libraries:
-
-        \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
-
-        And inside remplacing \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
+        \begin{itemize}
+            \item Gaudi based on CMake.
+            \item Created new Gaudi function for static libraries:
+            \begin{itemize}
+                \item Adapting the shared one.
+                \item \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
+                \item Replacing \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
+            \end{itemize}
+        \end{itemize}
     \end{frame}
 
     \subsection{Static modules}
@@ -187,25 +190,39 @@
     \begin{frame}[fragile]
         \frametitle{Static modules}
 
-        By using previous static libraries.
-        Need to add:
+        Linking modules as static libraries requires:
         \begin{itemize}
-            \item \verb'-Wl,--whole-archive' because without the linker removes what seems to be unused code.
-            \item \verb'-Wl,--allow-multiple-definition' because \verb'-Wl,--whole-archive' causes symbols to be included several times.
-            \item \verb'-Wl,--export-dynamic' to allow functors to access to symbols.
+            \item \verb'-Wl,--whole-archive'
+            \begin{itemize}
+                \item without the linker removes what seems to be unused code.
+            \end{itemize}
+            \item \verb'-Wl,--allow-multiple-definition'
+            \begin{itemize}
+                \item \verb'-Wl,--whole-archive' causes symbols to be included several times.
+            \end{itemize}
+            \item \verb'-Wl,--export-dynamic'
+            \begin{itemize}
+                \item allow functors to access to symbols.
+            \end{itemize}
         \end{itemize}
 
-        These flags seem to be Hacks and are not recommended to be used.
+        These flags are not recommended.
         There may still be bugs, especially with functors.
     \end{frame}
 
     \begin{frame}[fragile]
-        The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $ (\verb'opt+g').
+        \frametitle{Other Limitations of the Prototype}
 
-        Standard method to run test with python not working. Need to run directly the executable with a json options file:
-        \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
-            build.x86_64_v3-centos7-gcc11+detdesc-opt+g/run ./build.x86_64_v3-centos7-gcc11+detdesc-opt+g/Gaudi/Gaudi/Gaudi_static options.json
-        \end{lstlisting}
+        \begin{itemize}
+            \item The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $ (\verb'opt+g').
+            \item Standard method to run test with python not working.
+            \begin{itemize}
+                \item Need to run directly the executable with a json options file:
+            \end{itemize}
+            \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
+build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
+            \end{lstlisting}
+        \end{itemize}
     \end{frame}
 
 \section{Profile-guided optimization}
@@ -246,11 +263,14 @@
     \begin{frame}
         \frametitle{Link-time optimization}
 
-        C programm composed of translation units (1 translation unit $ \approx $ 1 .c file).
-
-        Compiler cannot optimize accross them by default.
-
-        LTO allows the linker to perform optimizations that take account of all translation units.
+        \begin{itemize}
+            \item C/C++ program composed of translation units
+            \begin{itemize}
+                \item 1 translation unit $ \approx $ 1 .c/.cpp file.
+            \end{itemize}
+            \item Compiler cannot optimize accross them by default.
+            \item LTO allows the linker to perform optimizations that take account of all translation units.
+        \end{itemize}
     \end{frame}
 
     \subsection{Final building pipeline}
