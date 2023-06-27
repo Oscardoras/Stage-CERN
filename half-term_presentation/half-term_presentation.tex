@@ -48,14 +48,12 @@
 
     \begin{frame}
         \frametitle{CERN}
-
-        Intergovernmental particle physics on France-Switzerland border.
-
-        About  15,000 people working at CERN.
-
-        Made discoveries that led to Nobel Prizes.
-
-        World Wide Web was invented at CERN.
+        \begin{itemize}
+            \item Intergovernmental particle physics on France-Switzerland border.
+            \item About  15,000 people working at CERN.
+            \item Made discoveries that led to Nobel Prizes.
+            \item World Wide Web was invented at CERN.
+        \end{itemize}
     \end{frame}
 
     \begin{frame}
@@ -106,11 +104,11 @@
     \begin{frame}
         \frametitle{Software}
 
-        The software is a stack of programms:
+        The software is a stack of programs:
 
         \begin{itemize}
             \item Common base shared with other experiments.
-            \item LHCb specific programms.
+            \item LHCb specific programs.
             \item Reconstruction, simultation...
         \end{itemize}
 
@@ -163,7 +161,7 @@
 
         \begin{itemize}
             \item STATIC: archive of object files that are merged to the executable at link time.
-            \item SHARED: .so (Linux) file that is automatically linked to the executable at runtime (when starting it).
+            \item SHARED: \verb'.so' (Linux) file that is automatically linked to the executable at runtime (when starting it).
             Allows several executables to link with a library installed on the system.
             \item MODULE: same as shared but the module is loaded on demand via the \verb'dlopen' function, so not automatically.
         \end{itemize}
@@ -244,18 +242,18 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
             \item Virtual call speculation
             \item Dead code separation
         \end{itemize}
-        Makes programms running several times faster.
+        Makes programs running several times faster.
         But a few times these heuristics are wrong.
     \end{frame}
 
 
     \begin{frame}
         A better way for the compiler should be knowing running behavior.
-        The the principle of PGO is:
+        The principle of PGO is:
         \begin{itemize}
-            \item Compiling the programm with instrumentation.
+            \item Compiling the program with instrumentation.
             \item Running it to create profiles (counters).
-            \item Recompiling the programm with the profiles.
+            \item Recompiling the program with the profiles.
         \end{itemize}
     \end{frame}
     \subsection{Link-time optimization}
@@ -279,9 +277,9 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
         \frametitle{Final building pipeline}
 
         \begin{itemize}
-            \item Compiling the programm with \verb'-fprofile-generate'
+            \item Compiling the program with \verb'-fprofile-generate'
             \item Running it to create profiles
-            \item Recompiling the programm with \verb'-flto -fprofile-use -fprofile-correction'
+            \item Recompiling the program with \verb'-flto -fprofile-use -fprofile-correction'
         \end{itemize}
     \end{frame}
 
@@ -303,7 +301,7 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
         \end{center}
 
         \begin{itemize}
-            \item Using LTO \& PGO makes the programm running faster.
+            \item Using LTO \& PGO makes the program running faster.
             \item Using static libraries and modules doesn't seem to be usefull and leads to some bugs.
         \end{itemize}
     \end{frame}
