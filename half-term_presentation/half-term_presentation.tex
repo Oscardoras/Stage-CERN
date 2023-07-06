@@ -46,276 +46,276 @@
 \section*{Introduction}
 \part{Body}
 
-    \begin{frame}
-        \frametitle{CERN}
-        \begin{itemize}
-            \item Intergovernmental particle physics on France-Switzerland border.
-            \item About  15,000 people working at CERN.
-            \item Made discoveries that led to Nobel Prizes.
-            \item World Wide Web was invented at CERN.
-        \end{itemize}
-    \end{frame}
+\begin{frame}
+    \frametitle{CERN}
+    \begin{itemize}
+        \item Intergovernmental particle physics on France-Switzerland border.
+        \item About  15,000 people working at CERN.
+        \item Made discoveries that led to Nobel Prizes.
+        \item World Wide Web was invented at CERN.
+    \end{itemize}
+\end{frame}
 
-    \begin{frame}
-        \includegraphics[width=0.75\textwidth]{WEB.jpg}
-    \end{frame}
+\begin{frame}
+    \includegraphics[width=0.75\textwidth]{WEB.jpg}
+\end{frame}
 
-    \begin{frame}
-        \frametitle{Large Hadron Collider (LHC)}
+\begin{frame}
+    \frametitle{Large Hadron Collider (LHC)}
 
-        \begin{itemize}
-            \item Large Hadron Collider: particle collider
-            \item $ 27 km $ (biggest in the world)
-            \item $ \sim 100 m $ underground
-        \end{itemize}
+    \begin{itemize}
+        \item Large Hadron Collider: particle collider
+        \item $ 27 km $ (biggest in the world)
+        \item $ \sim 100 m $ underground
+    \end{itemize}
 
-        \includegraphics[width=0.5\textwidth]{LHC.jpg}
-    \end{frame}
+    \includegraphics[width=0.5\textwidth]{LHC.jpg}
+\end{frame}
 
-    \begin{frame}
-        \frametitle{LHCb}
+\begin{frame}
+    \frametitle{LHCb}
 
-        \begin{itemize}
-            \item One of the 4 main experiments installed on the LHC.
-            \item More than 1,200 people working for the collaboration.
-            \item Studies asymmetry between matter and antimatter via b-physics.
-            Collision of hadrons (heavy particles).
-        \end{itemize}
+    \begin{itemize}
+        \item One of the 4 main experiments installed on the LHC.
+        \item More than 1,200 people working for the collaboration.
+        \item Studies asymmetry between matter and antimatter via b-physics.
+              Collision of hadrons (heavy particles).
+    \end{itemize}
 
-        \includegraphics[width=0.5\textwidth]{LHCb.jpg}
-    \end{frame}
+    \includegraphics[width=0.5\textwidth]{LHCb.jpg}
+\end{frame}
 
-    \begin{frame}
-        \frametitle{Physics Computing}
+\begin{frame}
+    \frametitle{Physics Computing}
 
-        Important computing infrastructure.
+    Important computing infrastructure.
 
-        \includegraphics[width=\textwidth]{LHCb_stack.png}
-    \end{frame}
+    \includegraphics[width=\textwidth]{LHCb_stack.png}
+\end{frame}
 
-    \begin{frame}
-        \frametitle{Computing group}
+\begin{frame}
+    \frametitle{Computing group}
 
-        \includegraphics[width=0.75\textwidth]{LHCb_3D.png}
+    \includegraphics[width=0.75\textwidth]{LHCb_3D.png}
 
-        The computing group has to maintain this infrastructure for LHCb.
-    \end{frame}
+    The computing group has to maintain this infrastructure for LHCb.
+\end{frame}
 
-    \begin{frame}
-        \frametitle{Software}
+\begin{frame}
+    \frametitle{Software}
 
-        The software is a stack of programs:
+    The software is a stack of programs:
 
-        \begin{itemize}
-            \item Common base shared with other experiments.
-            \item LHCb specific programs.
-            \item Reconstruction, simultation...
-        \end{itemize}
+    \begin{itemize}
+        \item Common base shared with other experiments.
+        \item LHCb specific programs.
+        \item Reconstruction, simultation...
+    \end{itemize}
 
-        Millions lines of code which some are 30 years old.
-        Code mainly written by non-software engineers.
+    Millions lines of code which some are 30 years old.
+    Code mainly written by non-software engineers.
 
-        All of this is running on thousands of multithreaded Linux servers.
-    \end{frame}
+    All of this is running on thousands of multithreaded Linux servers.
+\end{frame}
 
-    \begin{frame}
-        \frametitle{Table of contents}
-        \tableofcontents
-    \end{frame}
+\begin{frame}
+    \frametitle{Table of contents}
+    \tableofcontents
+\end{frame}
 
 \section{Graphviz for printing graphs}
 
-    \begin{frame}
-        \tableofcontents[currentsection]
-    \end{frame}
+\begin{frame}
+    \tableofcontents[currentsection]
+\end{frame}
 
-    \begin{frame}[fragile]
-        \frametitle{Graphviz for printing graphs}
+\begin{frame}[fragile]
+    \frametitle{Graphviz for printing graphs}
 
-        Printing graphs was usefull to have an idea of the dependencies.
+    Printing graphs was usefull to have an idea of the dependencies.
 
-        Graphviz in CMake to create dependency graphs:
-        \begin{itemize}
-            \item CMake arg: \verb'--graphviz=path/to/files.dot'
-            \item Convert to SVG: \verb'dot -Tsvg -o path/to/file.svg path/to/file.dot'
-            \item Make arg: \verb'CMAKEFLAGS="--graphviz=path/to/files.dot"'
-            \item Setting \verb'GRAPHVIZ_EXTERNAL_LIBS' to \verb'FALSE' is usefull.
-        \end{itemize}
+    Graphviz in CMake to create dependency graphs:
+    \begin{itemize}
+        \item CMake arg: \verb'--graphviz=path/to/files.dot'
+        \item Convert to SVG: \verb'dot -Tsvg -o path/to/file.svg path/to/file.dot'
+        \item Make arg: \verb'CMAKEFLAGS="--graphviz=path/to/files.dot"'
+        \item Setting \verb'GRAPHVIZ_EXTERNAL_LIBS' to \verb'FALSE' is usefull.
+    \end{itemize}
 
-    \end{frame}
+\end{frame}
 
-    \begin{frame}
-        \includegraphics[width=\textwidth]{graphviz_cropped.png}
-    \end{frame}
+\begin{frame}
+    \includegraphics[width=\textwidth]{graphviz_cropped.png}
+\end{frame}
 
 \section{Static libraries and modules}
 
-    \begin{frame}
-        \tableofcontents[currentsection]
-    \end{frame}
+\begin{frame}
+    \tableofcontents[currentsection]
+\end{frame}
 
-    \subsection{Library types}
+\subsection{Library types}
 
-    \begin{frame}[fragile]
-        \frametitle{Library types}
+\begin{frame}[fragile]
+    \frametitle{Library types}
 
-        \begin{itemize}
-            \item STATIC: archive of object files that are merged to the executable at link time.
-            \item SHARED: \verb'.so' (Linux) file that is automatically linked to the executable at runtime (when starting it).
-            Allows several executables to link with a library installed on the system.
-            \item MODULE: same as shared but the module is loaded on demand via the \verb'dlopen' function, so not automatically.
-        \end{itemize}
-    \end{frame}
+    \begin{itemize}
+        \item STATIC: archive of object files that are merged to the executable at link time.
+        \item SHARED: \verb'.so' (Linux) file that is automatically linked to the executable at runtime (when starting it).
+              Allows several executables to link with a library installed on the system.
+        \item MODULE: same as shared but the module is loaded on demand via the \verb'dlopen' function, so not automatically.
+    \end{itemize}
+\end{frame}
 
-    \subsection{Static libraries}
+\subsection{Static libraries}
 
-    \begin{frame}[fragile]
-        \frametitle{Gaudi Static libraries}
+\begin{frame}[fragile]
+    \frametitle{Gaudi Static libraries}
 
-        \begin{itemize}
-            \item Gaudi based on CMake.
-            \item Created new Gaudi function for static libraries:
-            \begin{itemize}
-                \item Adapting the shared one.
-                \item \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
-                \item Replacing \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
-            \end{itemize}
-        \end{itemize}
-    \end{frame}
+    \begin{itemize}
+        \item Gaudi based on CMake.
+        \item Created new Gaudi function for static libraries:
+              \begin{itemize}
+                  \item Adapting the shared one.
+                  \item \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'
+                  \item Replacing \verb'SHARED' by \verb'STATIC' in \verb'add_library' function call.
+              \end{itemize}
+    \end{itemize}
+\end{frame}
 
-    \subsection{Static modules}
+\subsection{Static modules}
 
-    \begin{frame}[fragile]
-        \frametitle{Static modules}
+\begin{frame}[fragile]
+    \frametitle{Static modules}
 
-        Linking modules as static libraries requires:
-        \begin{itemize}
-            \item \verb'-Wl,--whole-archive'
-            \begin{itemize}
-                \item without the linker removes what seems to be unused code.
-            \end{itemize}
-            \item \verb'-Wl,--allow-multiple-definition'
-            \begin{itemize}
-                \item \verb'-Wl,--whole-archive' causes symbols to be included several times.
-            \end{itemize}
-            \item \verb'-Wl,--export-dynamic'
-            \begin{itemize}
-                \item allow functors to access to symbols.
-            \end{itemize}
-        \end{itemize}
+    Linking modules as static libraries requires:
+    \begin{itemize}
+        \item \verb'-Wl,--whole-archive'
+              \begin{itemize}
+                  \item without the linker removes what seems to be unused code.
+              \end{itemize}
+        \item \verb'-Wl,--allow-multiple-definition'
+              \begin{itemize}
+                  \item \verb'-Wl,--whole-archive' causes symbols to be included several times.
+              \end{itemize}
+        \item \verb'-Wl,--export-dynamic'
+              \begin{itemize}
+                  \item allow functors to access to symbols.
+              \end{itemize}
+    \end{itemize}
 
-        These flags are not recommended.
-        There may still be bugs, especially with functors.
-    \end{frame}
+    These flags are not recommended.
+    There may still be bugs, especially with functors.
+\end{frame}
 
-    \begin{frame}[fragile]
-        \frametitle{Other Limitations of the Prototype}
+\begin{frame}[fragile]
+    \frametitle{Other Limitations of the Prototype}
 
-        \begin{itemize}
-            \item The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $ (\verb'opt+g').
-            \item Standard method to run test with python not working.
-            \begin{itemize}
-                \item Need to run directly the executable with a json options file:
-            \end{itemize}
-            \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
+    \begin{itemize}
+        \item The final executable goes from $ \sim 20 kB $ to $ 2.5 GB $ (\verb'opt+g').
+        \item Standard method to run test with python not working.
+              \begin{itemize}
+                  \item Need to run directly the executable with a json options file:
+              \end{itemize}
+              \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
 build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
             \end{lstlisting}
-        \end{itemize}
-    \end{frame}
+    \end{itemize}
+\end{frame}
 
 \section{Profile-guided optimization}
 
-    \begin{frame}
-        \tableofcontents[currentsection]
-    \end{frame}
+\begin{frame}
+    \tableofcontents[currentsection]
+\end{frame}
 
-    \subsection{Profile-guided optimization}
+\subsection{Profile-guided optimization}
 
-    \begin{frame}
-        \frametitle{Profile-guided optimization}
+\begin{frame}
+    \frametitle{Profile-guided optimization}
 
-        The compiler uses some heuristics to optimize some elements:
-        \begin{itemize}
-            \item Inlining
-            \item Block ordering
-            \item Register allocation
-            \item Virtual call speculation
-            \item Dead code separation
-        \end{itemize}
-        Makes programs running several times faster.
-        But a few times these heuristics are wrong.
-    \end{frame}
+    The compiler uses some heuristics to optimize some elements:
+    \begin{itemize}
+        \item Inlining
+        \item Block ordering
+        \item Register allocation
+        \item Virtual call speculation
+        \item Dead code separation
+    \end{itemize}
+    Makes programs running several times faster.
+    But a few times these heuristics are wrong.
+\end{frame}
 
 
-    \begin{frame}
-        A better way for the compiler should be knowing running behavior.
-        The principle of PGO is:
-        \begin{itemize}
-            \item Compiling the program with instrumentation.
-            \item Running it to create profiles (counters).
-            \item Recompiling the program with the profiles.
-        \end{itemize}
-    \end{frame}
-    \subsection{Link-time optimization}
+\begin{frame}
+    A better way for the compiler should be knowing running behavior.
+    The principle of PGO is:
+    \begin{itemize}
+        \item Compiling the program with instrumentation.
+        \item Running it to create profiles (counters).
+        \item Recompiling the program with the profiles.
+    \end{itemize}
+\end{frame}
+\subsection{Link-time optimization}
 
-    \begin{frame}
-        \frametitle{Link-time optimization}
+\begin{frame}
+    \frametitle{Link-time optimization}
 
-        \begin{itemize}
-            \item C/C++ program composed of translation units
-            \begin{itemize}
-                \item 1 translation unit $ \approx $ 1 .c/.cpp file.
-            \end{itemize}
-            \item Compiler cannot optimize accross them by default.
-            \item LTO allows the linker to perform optimizations that take account of all translation units.
-        \end{itemize}
-    \end{frame}
+    \begin{itemize}
+        \item C/C++ program composed of translation units
+              \begin{itemize}
+                  \item 1 translation unit $ \approx $ 1 .c/.cpp file.
+              \end{itemize}
+        \item Compiler cannot optimize accross them by default.
+        \item LTO allows the linker to perform optimizations that take account of all translation units.
+    \end{itemize}
+\end{frame}
 
-    \subsection{Final building pipeline}
+\subsection{Final building pipeline}
 
-    \begin{frame}[fragile]
-        \frametitle{Final building pipeline}
+\begin{frame}[fragile]
+    \frametitle{Final building pipeline}
 
-        \begin{itemize}
-            \item Compiling the program with \verb'-fprofile-generate'
-            \item Running it to create profiles
-            \item Recompiling the program with \verb'-flto -fprofile-use -fprofile-correction'
-        \end{itemize}
-    \end{frame}
+    \begin{itemize}
+        \item Compiling the program with \verb'-fprofile-generate'
+        \item Running it to create profiles
+        \item Recompiling the program with \verb'-flto -fprofile-use -fprofile-correction'
+    \end{itemize}
+\end{frame}
 
 \part{Conclusion}
 \section*{Conclusion}
 
-    \begin{frame}[fragile]
-        \frametitle{Conclusion}
+\begin{frame}[fragile]
+    \frametitle{Conclusion}
 
-        Test: \verb'hlt2_pp_thor' ($6 \times 1000$ events)
-        \begin{center}
-            \begin{tabular}{ c c c }
-                Optimization & Improvement & Confidence interval ($2\sigma$) \\
-                LTO & $0.17\%$ & $\pm 1.12\%$ \\
-                LTO \& PGO & $6.74\%$ & $\pm 1.44\%$ \\
-                Static LTO & $0.87\%$ & $\pm 0.60\%$ \\
-                Static LTO \& PGO & $6.88\%$ & $\pm 0.83\%$
-            \end{tabular}
-        \end{center}
+    Test: \verb'hlt2_pp_thor' ($6 \times 1000$ events)
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimization      & Improvement & Confidence interval ($2\sigma$) \\
+            LTO               & $0.17\%$    & $\pm 1.12\%$                    \\
+            LTO \& PGO        & $6.74\%$    & $\pm 1.44\%$                    \\
+            Static LTO        & $0.87\%$    & $\pm 0.60\%$                    \\
+            Static LTO \& PGO & $6.88\%$    & $\pm 0.83\%$
+        \end{tabular}
+    \end{center}
 
-        \begin{itemize}
-            \item Using LTO \& PGO makes the program running faster.
-            \item Using static libraries and modules doesn't seem to be usefull and leads to some bugs.
-        \end{itemize}
-    \end{frame}
+    \begin{itemize}
+        \item Using LTO \& PGO makes the program running faster.
+        \item Using static libraries and modules doesn't seem to be usefull and leads to some bugs.
+    \end{itemize}
+\end{frame}
 
-    \appendix
+\appendix
 
-    \begin{frame}[fragile]
-        \frametitle{Appendix}
+\begin{frame}[fragile]
+    \frametitle{Appendix}
 
-        \begin{itemize}
-            \item Stack: \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
-            \item PGO: \scriptsize \url{https://gitlab.cern.ch/obuon/lhcb-pgo} \normalsize
-            \item Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
-        \end{itemize}
-    \end{frame}
+    \begin{itemize}
+        \item Stack: \scriptsize \url{https://gitlab.cern.ch/clemenci/lhcb-super-project-template/} \normalsize
+        \item PGO: \scriptsize \url{https://gitlab.cern.ch/obuon/lhcb-pgo/-/tree/obuon_lto-pgo} \normalsize
+        \item Target: \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'
+    \end{itemize}
+\end{frame}
 
 \end{document}
