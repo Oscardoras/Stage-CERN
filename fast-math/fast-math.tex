@@ -18,7 +18,7 @@
 \setbeamertemplate{page number in head/foot}[totalframenumber]
 
 
-\title{Numerical stability ans fast-math}
+\title{Numerical stability and fast-math}
 \subtitle{Speeding up LHCb software through compilation optimization}
 \author{Oscar Buon}
 
@@ -63,9 +63,20 @@
     \begin{displaymath}
         \begin{split}
             (0.75)_{10} & = (+ 7.5 \times 10^{-1})_{10} \\
+            & = (+11 \times 2^{-2})_{2} \\
             & = (\underbrace{+}_{sign} \underbrace{1.1}_{mantissa} \times 2^{\overbrace{-1}^{exponent}})_{2} = (0.11)_{2}
         \end{split}
     \end{displaymath}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Non-nominal case}
+
+    \begin{displaymath}
+        (0.8)_{10} \approx (1.1001100110011001101 \times 2^{-1})_{2}
+    \end{displaymath}
+
+    The representation is an approximation, because the number of bits is limited.
 \end{frame}
 
 \subsection{IEEE 754}
@@ -74,16 +85,19 @@
     \frametitle{IEEE 754}
 
     \begin{itemize}
-        \item 32 bits and 64 bits formats
-        \item Subnormal numbers
-        \item Special values: -Inf, +Inf, NaN
-        \item Rounding rules
-        \item Exception handling
+        \item 32 bits ($\sim 7.2$ digits) and 64 bits ($\sim 15.9$ digits) formats ;
+        \item Special rules:
+              \begin{itemize}
+                  \item Subnormal numbers (numbers very close to $0$) ;
+                  \item Special values: -Inf, +Inf, NaN ;
+                  \item Rounding rules ;
+                  \item Exception handling ;
+              \end{itemize}
         \item We should always consider floats as approximations !
     \end{itemize}
 \end{frame}
 
-\section{Correctness of some computes}
+\section{Correctness of some computations}
 
 \begin{frame}
     \tableofcontents[currentsection]
@@ -113,37 +127,51 @@
 
     \begin{lstlisting}[language=c++]
 if (f(x) != 0.)
-        return 5./f(x)
+    return 5./f(x);
+else
+    ...
     \end{lstlisting}
 
     \begin{itemize}
         \item Maybe the two \verb'f(x)' will not be the sames.
+        \item Due to different optimizations.
     \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
     \begin{lstlisting}[language=c++]
-if ((float y = f(x)) != 0.)
-        return 5./y
+float y = f(x);
+if (y != 0.)
+    return 5./y;
+else
+    ...
     \end{lstlisting}
 
     \begin{itemize}
         \item Maybe \verb'f(x)' will still be calculated twice.
-        \item if \verb'f(x)' is close to $0$ then \verb'5./y' could be +Inf.
+        \item If \verb'f(x)' is close to $0$ then \verb'5./y' could be +Inf.
     \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-    We should use:
-    \begin{itemize}
-        \item Using \verb'isfinite' after the compute.
-    \end{itemize}
+    A good way is using \verb'isfinite' after the computation.
 
-    There is also:
+    \begin{lstlisting}[language=c++]
+float result = 5./f(x);
+if (std::isfinite(result))
+    return result;
+else
+    ...
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    There are also:
     \begin{itemize}
-        \item The trapping system (registering a handler with \verb'signal()').
-        \item The signaling system via \verb'std::numeric_limits<T>::signaling_NaN'.
+        \item The trapping system (registering a handler with \emph{C} function \verb'signal(handler)') ;
+        \item The signaling system via \verb'std::numeric_limits<T>::signaling_NaN' ;
     \end{itemize}
+    but they are old methods and are not recommended.
 \end{frame}
 
 \section{Fast-math}
@@ -156,9 +184,20 @@ if ((float y = f(x)) != 0.)
     \frametitle{Principle}
 
     \begin{itemize}
-        \item Making mathematically valid optimizations but not respecting Standard.
+        \item Set of flags.
+        \item Making mathematically valid optimizations but not respecting Standard:
+              \begin{itemize}
+                  \item $a+b-a = b$.
+                  \item With $a = 10^6$ and $b = 10^{-6}$,
+
+                        Standard gives $0$, fast-math gives $10^{-6}$.
+              \end{itemize}
         \item Different results but not more wrong than without \verb'fast-math'.
     \end{itemize}
+
+    \url{https://godbolt.org/z/841zx64bM}
+
+    \url{https://godbolt.org/z/6jjqWrc51}
 \end{frame}
 
 \subsection{Exception handling}
@@ -198,20 +237,11 @@ if ((float y = f(x)) != 0.)
         \item Allow optimizations for floating-point arithmetic that assume that arguments and results are not NaNs or +-Infs.
         \item Compiler can replace \verb'isnan' by \verb'false'.
               Actually it is an undefined behavior.
-        \item Main source of bugs from \verb'fast-math'.
+        \item Main source of issues from \verb'fast-math'.
     \end{itemize}
 \end{frame}
 
 \subsection{Approximation}
-
-\begin{frame}
-    \frametitle{no-rounding-math}
-
-    \begin{itemize}
-        \item Round-to-zero for all floating point to integer conversions, and round-to-nearest for all other arithmetic truncations.
-        \item Enabled by default.
-    \end{itemize}
-\end{frame}
 
 \begin{frame}[fragile]
     \frametitle{no-signed-zeros}
@@ -227,7 +257,7 @@ if ((float y = f(x)) != 0.)
 
     \begin{itemize}
         \item Allow re-association of operands in series of floating-point operations.
-        \item Can optimize \verb'2.0*x*3.0' in \verb'6.0*x' $\implies$ make some computes at compile time.
+        \item Can optimize \verb'2.0*x*3.0' in \verb'6.0*x' $\implies$ make some computations at compile time.
         \item May allow a better vectorization and use of \emph{FMA}.
         \item Needs no-signed-zeros and no-trapping-math.
     \end{itemize}
@@ -239,7 +269,7 @@ if ((float y = f(x)) != 0.)
     \begin{itemize}
         \item Allow the reciprocal of a value to be used instead of dividing by the value if this enables optimizations.
         \item Ex. Replacing \verb'x/y' by \verb'x*(1/y)'.
-        \item Decreases precision.
+        \item May decrease precision.
     \end{itemize}
 \end{frame}
 
@@ -247,7 +277,11 @@ if ((float y = f(x)) != 0.)
     \frametitle{unsafe-math-optimizations}
 
     \begin{itemize}
-        \item Allow optimizations for floating-point arithmetic that (a) assume that arguments and results are valid and (b) may violate IEEE or ANSI standards.
+        \item Allow optimizations for floating-point arithmetic that
+              \begin{enumerate}
+                  \item assume that arguments and results are valid and
+                  \item may violate IEEE or ANSI standards.
+              \end{enumerate}
         \item When used at link time, it may include libraries or startup files that change the default FPU control word or other similar optimizations.
         \item Can affect dynamically included libraries.
         \item Enables -fno-signed-zeros, -fno-trapping-math, -fassociative-math and -freciprocal-math.
@@ -265,19 +299,23 @@ if ((float y = f(x)) != 0.)
 \begin{frame}[fragile]
     \frametitle{Improvement}
 
-    Test: \verb'hlt2_pp_thor' ($2 \times 1000$ events)
+    Test: \verb'hlt2_pp_thor'
     \begin{center}
         \begin{tabular}{ c c c }
-            Optimization                                 & Improvement & Confidence interval ($2\sigma$) \\
-            Fast-math\footnote{without finite-math-only} & $0\%$       & $\pm 0\%$                       \\
-            Associative-math                             & $4.73\%$    & $\pm 0.87\%$                    \\
-            Fast-math + LTO \& PGO                       & $12.04\%$   & $\pm 0.73\%$
+            Optimization                           & Improvement & Confidence interval ($2\sigma$) \\
+            Fast-math\footnotemark[1]              & $5.06\%$    & $\pm 0.98\%$                    \\
+            Associative-math only                  & $4.73\%$    & $\pm 1.51\%$                    \\
+            Fast-math\footnotemark[1] + LTO \& PGO & $11.02\%$   & $\pm 0.98\%$
         \end{tabular}
     \end{center}
+
+    \footnotetext[1]{without finite-math-only and unsafe-math-optimizations\newline}
 \end{frame}
 
 \begin{frame}[fragile]
     \frametitle{VTune}
+
+    Time used by CPU for computing floats:
 
     \begin{figure}[!htb]
         \includegraphics[width=0.5\textwidth, center]{reference_vtune.png}
@@ -290,10 +328,10 @@ if ((float y = f(x)) != 0.)
     \end{figure}
 \end{frame}
 
-\subsection{Difference}
+\subsection{Differences in the counters}
 
 \begin{frame}[fragile]
-    \frametitle{Difference}
+    \frametitle{Differences in the counters}
 
     Difference with the reference (all counters):
     \includegraphics[width=\textwidth]{fast-math_difference.png}
@@ -301,18 +339,31 @@ if ((float y = f(x)) != 0.)
 
 \part{Conclusion}
 
+\section{Conclusion}
+
 \begin{frame}[fragile]
-    \frametitle{Conclusion}
+    \frametitle{In a first time}
 
     \begin{itemize}
         \item Enabling \verb'-Wfloat-equal'.
-        \item Enabling fast-math at least for checking unstability.
-        \item Other advantages:
+        \item Enabling fast-math in one slot for instability checking.
               \begin{itemize}
-                  \item Better precision in most cases (\emph{FMA} and \verb'double-precision-constant').
+                  \item Forget about \verb'finite-math-only' and \verb'unsafe-math-optimizations'.
+              \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{In a second time}
+
+    \begin{itemize}
+        \item Switch to fast-math for production.
+              \begin{itemize}
+                  \item Sometimes better precision (\emph{FMA} and \verb'double-precision-constant').
                   \item Coding clear equations and letting compiler optimize them.
                   \item GPU already using similar principles.
-                  \item Make it clear that floats are approximations.
+                  \item Dropping features that are legacies.
+                  \item Assuming floats are approximations.
               \end{itemize}
     \end{itemize}
 \end{frame}
