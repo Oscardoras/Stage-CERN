@@ -59,11 +59,14 @@
 
 \begin{titlepage}
     \centering
-    \begin{minipage}{0.45\textwidth}
+    \begin{minipage}{0.25\textwidth}
         \includegraphics[width=\textwidth]{logo_ISIMA_INP.png}
     \end{minipage}\hfill
-    \begin{minipage}{0.45\textwidth}
+    \begin{minipage}{0.25\textwidth}
         \includegraphics[width=\textwidth]{logo_CERN.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.25\textwidth}
+        \includegraphics[width=\textwidth]{logo_LHCb.png}
     \end{minipage}
 
     \vfill
@@ -126,12 +129,13 @@ Enfin je remercie Gloria Corti et Marco Cattaneo qui m'ont fait visité LHCb et 
     Les programmes sont principalement codés en C++ et compilés via CMake.
 
     Plusieurs méthodes ont été utilisées.
-    La première a été de fusionner les centaines de bibliothèques dynamiques en un seul exécutable statique.
+    La première a consisté à fusionner les centaines de bibliothèques dynamiques en un seul exécutable statique.
     L'utilisation de profile-guided optimization et de link-time optimization a ensuite été mise en place.
     Enfin les options \emph{fast-math} ont été testées.
 
     Au total, une amélioration de la vitesse d'exécution d'environ $11\%$ a été obtenue avec le link-time optimization, le profile-guided optimization et fast-math sur le code de la reconstruction des données du détecteur.
 
+    Le reste du temps a été utilisé pour mettre en place l'outil include-what-you-use et la compilation sur ARM.
     \vfill
 
     Mots-clés : LHCb, Optimisation, Compilation avancée
@@ -150,22 +154,23 @@ Enfin je remercie Gloria Corti et Marco Cattaneo qui m'ont fait visité LHCb et 
 
 \pagenumbering{arabic}
 \chapter*{Introduction}
-LHCb est l'une des quatre principales expériences du Large Hadron Collider (LHC) du CERN.
-À l'intérieur se font plus de 30 millions de collisions par secondes, ce qui produit un flux de données d'environ $5 To/s$.
-Ces données doivent rapidement être traitées pour reconstruire les trajectoires des particules et pour pouvoir être analysées tout autour du monde.
+LHCb est l'une des quatre expériences principales du Large Hadron Collider (LHC) du CERN.
+Au centre du détecteur ont lieu plus de 30 millions de collisions par secondes, ce qui produit un flux de données d'environ $5 To/s$.
+Ces données doivent rapidement être traitées pour reconstruire les trajectoires des particules et pour pouvoir être analysées dans le monde entier.
 
 L'infrastructure logicielle de traitement est principalement écrite en C++ et en Python.
 Du code est ajouté ou modifié tous les jours par plusieurs centaines de membres de la collaboration, qui représentent 83 instituts dans 19 pays en 2020.
 Cela représente des millions de lignes de codes qu'il faut maintenir et améliorer.
-Pour gérer cela, des outils modernes comme Git \cite{git}, gcc \cite{gcc}, clang ou CMake \cite{cmake} sont utilisés.
+Pour gérer cela, des outils modernes comme Git \cite{git}, gcc \cite{gcc}, clang \cite{clang} ou CMake \cite{cmake} sont utilisés.
 
-L'objectif du stage est d'abord de proposer et d'implémenter des solutions pour améliorer l'efficacité des programmes.
+L'objectif du stage est d'abord de proposer puis d'implémenter des solutions pour améliorer l'efficacité des programmes en jouant sur la compilation.
 Le temps restant est consacré à effectuer d'autres tâches aidant au maintient de l'infrastructure.
 
-Dans un premier temps a été étudié la possibilité d'utiliser des \emph{bibliothèques statiques} à la place des \emph{dynamiques}.
-Ensuite a été abordé la mise en place de \emph{profile-guided optimization} pour la compilation des programmes.
-Aussi la mise en place d'outils permettant de mieux gérer les inclusions dans le code source a été envisagée.
-Enfin l'impact de l'utilisation de \emph{fast math} sur la rapidité et la stabilité des programmes a été étudié.
+Dans un premier temps a été étudié la possibilité d'utiliser des \emph{bibliothèques statiques} (\ref{section:static}) à la place des \emph{dynamiques}.
+Ensuite a été abordé la mise en place de \emph{profile-guided optimization} (\ref{section:pgo}) pour la compilation des programmes.
+Aussi l'impact de l'utilisation de \emph{fast math} (\ref{section:fast-math}) sur la rapidité et la stabilité des programmes a été étudié.
+La mise en place de l'outil \emph{incude-what-you-use} (\ref{section:iwyu}) permettant de mieux gérer les inclusions dans le code source a été envisagée.
+Enfin, la compilation de la pile LHCb pour architecture \emph{ARM} (\ref{section:arm}) a été étudiée.
 
 La première partie de ce rapport est consacrée à l'étude et l'analyse des problèmes.
 La seconde explique les méthodes et solutions techniques utilisées.
@@ -187,17 +192,17 @@ Le plus grand accélérateur est le Grand collisionneur de hadrons ou LHC pour L
 Il permet d'accélérer des protons à une énergie d'environ $7 Tev$.
 
 \begin{figure}[!htb]
-    \includegraphics[width=\textwidth, center]{LHC.jpg}
+    \includegraphics[width=0.75\textwidth, center]{LHC.jpg}
     \caption{Tunnel du LHC}
     \label{LHC}
 \end{figure}
 
 Le CERN est connu pour être à l'origine de plusieurs découvertes importantes.
 On peut notamment citer la découverte du boson de Higgs en 2012 qui a mené au prix Nobel de François Englert et Peter Higgs.
-Le CERN est aussi à l'origine de la création du World Wide Web (Figure \ref{WEB}), qui permettait à l'origine le partage de papiers scientifiques.
+Le CERN est aussi à l'origine de la création du World Wide Web (Figure \ref{WEB}), qui permettait à l'origine le partage d'articles scientifiques.
 
 \begin{figure}[!htb]
-    \includegraphics[width=\textwidth, center]{WEB.jpg}
+    \includegraphics[width=0.75\textwidth, center]{WEB.jpg}
     \caption{Plaque commémorative de l'invention du World Wide Web dans le bâtiment 1 du CERN}
     \label{WEB}
 \end{figure}
@@ -207,37 +212,38 @@ Ces expériences prennent la forme de détecteurs. C'est en leurs centres que se
 
 La mise en oeuvre des détecteurs et expériences du CERN a depuis longtemps nécessité le développement de nouvelles technologies.
 Ainsi l'informatique et internet sont présent depuis longtemps afin de gérer la masse de données produites dans les détecteurs \cite{Saikumar:2022mgb}.
-Des programmes comportant plusieurs millions de lignes de codes sont exécutées dans les centres de calcul sur les sites du CERN mais aussi partout autour du monde grâce au "\href{https://wlcg-public.web.cern.ch/}{Grid}".
+Des programmes comportant plusieurs millions de lignes de codes sont exécutées dans les centres de calcul sur les sites du CERN
+mais aussi partout autour du monde grâce au "\href{https://wlcg-public.web.cern.ch/}{Grid}", une interconnexion de centaines de centres de calculs.
 Le CERN a aussi contribué au développement d'internet en Europe.
 
 \section{L'expérience LHCb}
-Le Large Hadron Collider beauty ou \href{https://lhcb.web.cern.ch/}{LHCb} (Figure \ref{LHCb}) est l'une des quatre principales expériences installées sur le LHC.
+Le Large Hadron Collider beauty ou \href{https://lhcb.web.cern.ch/}{LHCb} (Figure \ref{LHCb}) est l'une des quatre grandes expériences installées sur le LHC.
 Elle utilise l'étude du quark b afin de mesurer l'asymétrie entre matière et antimatière.
 La collaboration regroupe plus de 1200 personnes représentant plusieurs dizaines d'instituts.
-L'expérience se situe sur le point 8 du LHC, sur la commune française de Ferney-Voltaire.
+L'expérience est située sur le point 8 du LHC, sur la commune française de Ferney-Voltaire.
 
 \begin{figure}[!htb]
-    \includegraphics[width=\textwidth, center]{LHCb.jpg}
+    \includegraphics[width=0.75\textwidth, center]{LHCb.jpg}
     \caption{LHCb}
     \label{LHCb}
 \end{figure}
 
-Le détecteur est composé de plusieurs instruments qui mesurent le passage des particules émises lors des collisions (Figure \ref{LHCb_3D}).
-Grâce aux données recueillies, on peut reconstruire les trajectoires des particules ainsi que certaines de leur propriétés comme la masse, la charge ou l'énergie.
+Le détecteur est composé de plusieurs instruments qui mesurent le passage des particules émises lors des collisions.
+Grâce aux données recueillies, on peut reconstruire les trajectoires des particules ainsi que certaines de leur propriétés comme la masse, la charge ou l'énergie (Figure \ref{LHCb_3D}).
 
 \begin{figure}[H]
     \includegraphics[width=\textwidth, center]{LHCb_3D.png}
-    \caption{Modélisations de particules dans le détecteur}
+    \caption{Visualisation de particules vues par le détecteur}
     \label{LHCb_3D}
 \end{figure}
 
 \section{Computing Group}
 Les différents instruments du détecteur produisent un flux de données conséquent d'environ $5 To/s$.
 Une importante infrastructure informatique est donc nécessaire pour pouvoir les traiter.
-On voit sur la figure \ref{LHCb_stack} que les données sont d'abord partiellement traitées à un premier niveau de reconstruction partielle (Hlt1) qui permet de ne garder seulement les tracks les plus intéressantes.
+On voit sur la figure \ref{LHCb_stack} que les données sont d'abord partiellement traitées à un premier niveau de reconstruction partielle \emph{High Level Trigger 1} (Hlt1) qui permet de ne garder seulement les collisions les plus intéressantes.
 Cela abaisse le flux de données à environ $100 Go/s$.
-Les données sont ensuite enregistrées dans un \emph{buffer} pour quelques heures puis sont traitées par un second niveau de reconstruction complète (Hlt2).
-Ce qui en sort peut finalement être enregistré pour servir de matière à des recherches physiques plus tard.
+Les données sont ensuite enregistrées dans un \emph{buffer} pour quelques heures puis sont traitées par un second niveau de reconstruction complète \emph{High Level Trigger 2} (Hlt2), qui lui aussi ne garde que certaines collisions.
+Ce qui en sort peut finalement être enregistré à long terme sur bandes magnétiques pour servir de matière à des recherches physiques plus tard.
 
 \begin{figure}[H]
     \includegraphics[width=\textwidth, center]{LHCb_stack.png}
@@ -247,19 +253,20 @@ Ce qui en sort peut finalement être enregistré pour servir de matière à des 
 
 LHCb utilise une pile de programmes (dont certains sont partagés avec d'autres expériences) qui traitent les données issues du détecteur.
 Cette pile contient plusieurs millions de lignes de codes.
-Ce code est principalement du C++ fait en grande partie par des physiciens non ingénieurs en informatique et dont certaines parties ont plusieurs décennies d'âge.
+Ce code est principalement du C++ écrit en grande partie par des physiciens non ingénieurs en informatique et dont certaines parties ont plusieurs décennies d'âge.
 
 Son maintien et son amélioration sont donc des enjeux majeurs.
-C'est le Computing Group de LHCb qui est chargé de cette tâche.
+C'est le Computing Group de LHCb qui est chargé de cette tâche et c'est en son sein que s'est fait le stage.
 
-\section{Travail à faire}
+\section{Objectif du stage}
 Le code C++ de LHCb est compilé avec l'outil CMake \cite{cmake} qui permet de simplement définir les différentes cibles de compilation ainsi que leurs dépendances.
 Il est composé de plusieurs programmes qui forment une pile.
 On peut citer : Geant, Root ou Gaudi qui sont partagés avec d'autres expériences et Detector, LHCb, Lbcom, Rec ou Moore qui sont spécifiques à LHCb.
-Tout ceci tourne sur des serveurs Linux et est largement paralléliser.
+Tout ceci tourne sur des serveurs Linux et est largement parallélisé.
 
 L'objectif de ce stage est d'implémenter des solutions basées sur une meilleure utilisation du compilateur pour améliorer la rapidité d'exécution du code.
 Les deux principales voies initialement envisagées sont l'utilisation de bibliothèques statiques à la place des dynamiques et la mise en place de profile-guided optimization.
+D'autres sujets ont ensuite été traités : les options de fast-math, la mise en place d'include-what-you-use, et la compilation sur ARM.
 
 \section{Étude et analyse des problèmes}
 
@@ -280,9 +287,9 @@ Le passage du code source au binaire final se fait en plusieurs étapes :
           Pour cela il fait la résolution des différents symboles utilisés, notamment il fait la correspondance entre les noms des fonctions et leurs emplacements en mémoire.
 \end{enumerate}
 
-\subsection{Types de bibliothèques}
+\subsection{Types de bibliothèques}\label{section:static}
 Il est possible de compiler du code C ou C++ non pas comme un exécutable mais comme une bibliothèque.
-Cette bibliothèque peut ensuite être linkée avec un exécutable ou une autre bibliothèque afin de lui fournir des fonctions ou symboles.
+Cette bibliothèque peut ensuite être "linkée" à un exécutable ou une autre bibliothèque afin de lui fournir des fonctions ou symboles.
 Il existe plusieurs types de bibliothèques.
 
 \subsubsection{STATIC}
@@ -290,18 +297,18 @@ Une bibliothèque statique est une archive de fichiers objets.
 Lors du linkage avec un exécutable, ceux-ci sont simplement linkés avec les autres fichiers objets issus des fichiers sources du programme.
 
 \subsubsection{SHARED}
-Une bibliothèque partagée est un fichier compilé sous forme de bibliothèque externe.
-On lui donne souvent l'extension \verb'.so' sous Linux ou \verb'.dll' sous Windows.
+Une bibliothèque partagée, ou "shared" en anglais, est un fichier compilé sous forme de bibliothèque externe.
+On lui donne souvent l'extension \verb'.so' ("shared object") sous Linux ou \verb'.dll' ("dynamically linked library") sous Windows.
 Ce fichier n'est pas linké après la compilation mais au chargement de l'exécutable par le \emph{linker dynamique} via une liste de dépendances que contient l'exécutable.
 
 Comme leur nom l'indique, ces bibliothèque peuvent être partagées par plusieurs binaires.
-Ainsi, si plusieurs exécutables utilisent la même bibliothèque partagée, il n'y a besoin de la compiler ou de la télécharger qu'une seule fois sur la machine.
+Ainsi, si plusieurs exécutables utilisent la même bibliothèque partagée, il y a besoin de la compiler ou de la télécharger qu'une seule fois sur la machine.
 De plus, il est possible de mettre à jour la bibliothèque sans avoir besoin de mettre à jour les exécutables.
 
 Ainsi de nombreuses bibliothèques de base du système sont distribuées sous cette forme.
 
 \subsubsection{MODULE}
-Un module est en fait une bibliothèque partagée, à la différence qu'on la charge généralement manuellement pendant l'exécution, alors qu'une bibliothèque partagée est automatiquement linkée au démarrage.
+Un module est en fait une bibliothèque partagée, à la différence qu'on la charge généralement manuellement pendant l'exécution, alors qu'une bibliothèque partagée est automatiquement chargée au démarrage.
 Pour ce faire on utilise la fonction C \verb'dlopen' à laquelle on donne le chemin du module.
 
 Ainsi les modules permettent de charger complètement dynamiquement des parties de programme selon les besoins.
@@ -313,22 +320,22 @@ Cependant en pratique il n'exporte souvent aucun symbole mais contient des "plug
 On peut aussi compiler et charger du code à la volée (Just-in-time).
 Ce mécanisme est utilisé dans LHCb via ce qu'on appelle les foncteurs.
 
-\subsubsection{Cas de LHCb}
+\subsubsection{Utilisation dans LHCb}
 La pile LHCb est découpée en centaines de "packages".
 Ce découpage existe d'abord pour des raisons historiques car cela permettait de plus facilement collaborer sur le même projet avant l'arrivée de Git.
 Mais cela permet aussi de ne pas avoir à tout compiler et charger lorsqu'on a besoin de travailler sur seulement certaines parties.
 
 De ce fait la pile une fois compilée se compose de centaines de bibliothèques et de modules dynamiques.
-Cette architecture est certes plus simple à utiliser mais il pourrait être intéressant d'étudier si leur fusion en un seul grand exécutable permettrait une meilleur performance en production.
+Cette architecture est certes plus simple à utiliser mais il pourrait être intéressant d'étudier si leur fusion en un seul grand exécutable permettrait une meilleure performance en production.
 En effet, la position en mémoire (relativement à l'exécutable) des fonctions n'étant pas connue à la compilation avec les bibliothèques dynamiques, cela oblige à ce que les appels à ces fonctions soient indirects.
 Il peut typiquement utiliser des pointeurs de fonctions, ce qui oblige à aller chercher leurs adresses en mémoire.
-À l'inverse, avec des bibliothèques statiques la position de la fonction en mémoire est connue à la compilation et peut donc être écrite en dure dans le code assembleur.
+À l'inverse, avec des bibliothèques statiques la position de la fonction en mémoire est connue à la compilation et peut donc être écrite en dur dans le code assembleur.
 
 \bigskip
 Ce sera le premier sujet d'étude du stage.
 
-\subsection{Guided optimization}
-Les compilateurs comme \emph{gcc} ou \emph{clang} possèdent de nombreuses options qui permettent d'améliorer le temps d'exécution des programmes compilés.
+\subsection{Guided optimization}\label{section:pgo}
+Les compilateurs comme \emph{gcc} ou \emph{clang} possèdent de nombreuses options qui permettent d'améliorer le temps d'exécution des programmes compilés \cite{gcc}.
 Parmi ces optimisations on peut citer :
 \begin{itemize}
     \item l'\emph{inlining} qui est le fait de remplacer l'appel d'une fonction par le corps de la fonction elle-même ;
@@ -339,10 +346,10 @@ Parmi ces optimisations on peut citer :
 Certaines de ces optimisations utilisent des heuristiques pour déterminer quelle possibilité est la plus probable.
 Tout ceci permet d'améliorer grandement les performances d'un programme compilé en mode optimisé.
 
-Cependant les heuristiques utilisées sont quelques fois limitées, ce qui limite l'optimisation.
-Pour pouvoir faire mieux, il faudrait pouvoir savoir comment le programme se comporte en situation réelle afin de mieux choisir pour chaque cas quelle est la meilleure solution d'optimisation.
+Cependant les heuristiques utilisées sont quelques fois limitées, ce qui a un impacte sur l'optimisation.
+Pour aller plus loin, il faudrait pouvoir savoir comment le programme se comporte en situation réelle afin de mieux choisir pour chaque cas quelle est la meilleure solution d'optimisation.
 
-\subsubsection{Profile-guided optimization}
+\subsubsection{Profile-guided optimization (PGO)}
 Le \emph{profile-guided optimization} est une technique qui consiste à :
 \begin{enumerate}
     \item compiler une première fois le programme avec des options pour faire de \emph{l'instrumentation} ;
@@ -356,7 +363,7 @@ Cette solution proposée par Google \cite{45290} repose sur le même principe qu
 À la place, on utilise des outils de \emph{profiling} lors de l'exécution du programme pour créer les profils.
 Cette technique peut être plus facile à mettre en oeuvre et offre des résultats sensiblement similaires.
 
-\subsubsection{Link-time optimization}
+\subsubsection{Link-time optimization (LTO)}
 Lorsqu'on compile un programme C ou C++, on compile indépendamment chaque fichier source (\emph{translation unit}) en fichier objet.
 Ces fichiers sont ensuite réunis en un binaire par le linker.
 De ce fait, le compilateur est incapable de faire des optimisations qui font intervenir plusieurs translation units.
@@ -365,10 +372,9 @@ Typiquement, le compilateur ne peut pas faire d'inlining si la définition de la
 Le \emph{link-time optimization} permet d'effectuer des optimisations supplémentaires au moment du link et donc de gagner en vitesse d'exécution.
 
 \bigskip
-Le guided optimization sera le second sujet d'étude.
+L'ensemble de ces options constituent le second sujet d'étude de ce stage.
 
-\subsection{Fast-math}
-
+\subsection{Fast-math}\label{section:fast-math}
 \subsubsection{Représentation informatique des réels}
 Il existe plusieurs manières de représenter les nombres réels en informatique.
 La plus utilisée est la représentation en \emph{virgule flottante}.
@@ -382,7 +388,7 @@ Le principe est similaire à celui de la notation scientifique, à la différenc
     \end{split}
 \end{displaymath}
 
-On remarque que cette représentation ne peut dans la plupart des cas que représenter des approximations de nombres réels car il n'y a un nombre fixe et donc limité de chiffres.
+On remarque que cette représentation ne peut dans la plupart des cas que représenter des approximations de nombres réels car il y a un nombre fixe et donc limité de chiffres.
 
 \begin{displaymath}
     \begin{split}
@@ -391,8 +397,8 @@ On remarque que cette représentation ne peut dans la plupart des cas que repré
     \end{split}
 \end{displaymath}
 
-De plus certains comportements ne sont pas ceux que l'on s'attend à avoir.
-Par exemple les nombres flottants ne sont pas \emph{associatifs}, alors que cette propriété est une base des réels en mathématiques.
+De plus certains comportements ne sont pas ceux que l'on s'attend à avoir d'un point de vue mathématique.
+Par exemple les opérations sur les nombres flottants ne sont pas \emph{associatifs}, alors que cette propriété est une base des réels en mathématiques.
 En effet l'associativité a pour conséquence que :
 $$\forall (a, b) \in \mathbb{R}, a+b-a=b$$
 Mais par exemple avec des flottants 32 bits, si $a=10^{6}$ et $b=10^{-6}$, $a$ étant beaucoup plus grand que $b$,
@@ -400,19 +406,19 @@ il n'y a pas assez de bits pour stocker précisément le résultats de $a+b$ qui
 Donc le résultat du calcul vaut ici $0$ et non pas $b$ comme il le devrait.
 
 Un autre problème est l'instabilité numérique.
-En effet lorsqu'on enchaîne un certain nombre de calculs, les arrondis peuvent finir par jouer beaucoup dans les résultats, jusqu'à un point où il n'y a même plus de chiffres significatifs.
-Concevoir des algorithmes stables numériquement est un enjeux majeur de l'informatique depuis ses débuts.
+En effet lorsqu'on enchaîne un certain nombre de calculs, les arrondis peuvent finir par jouer beaucoup dans les résultats pour certains algorithmes sensibles, jusqu'à un point où il n'y a même plus de chiffres significatifs.
+Concevoir des algorithmes stables numériquement est un enjeux majeur de l'informatique depuis ses débuts \cite{19770005172}.
 
 \subsubsection{Standard IEEE 754}
 
 Pour normaliser tout cela, il existe le standard \emph{IEEE 754} \cite{8766229}.
-Celui-ci définit plusieurs formats, notamment une version 32 bits et une version 64 bits :
+Celui-ci définit plusieurs formats de nombres flottants, notamment une version 32 bits et une version 64 bits. Il spécifie entre autre :
 \begin{itemize}
     \item les formats d'écriture des nombres finis avec à chaque fois, un bit pour le signe, un nombre pour la mantisse et un nombre pour l'exposant ;
     \item des valeurs spéciales comme \verb'+Inf', \verb'-Inf' et \verb'NaN' (\emph{Not a Number}) ;
     \item les règles d'arrondi ;
     \item les opérations et fonctions mathématiques ;
-    \item des systèmes de gestion des exceptions ;
+    \item des systèmes de gestion des exceptions (division par 0, dépassement...) ;
 \end{itemize}
 
 Outre l'interropérabilité, ces règles sont sensées garantir la reproductibilité des calculs sur différentes machines,
@@ -428,9 +434,9 @@ Ainsi la question de l'activation des différentes options dépend de l'usage qu
 On pourra remarquer que la plupart des programmes ont juste besoin de faire des calculs numériques et que le respect strict de la norme n'importe peu.
 
 \bigskip
-Ce sera le troisième sujet étudié.
+L'utilisation de fast-math et ses conséquences sur la vitesse d'exécution et la stabilité des résultats sera le troisième sujet étudié.
 
-\subsection{Include-what-you-use}
+\subsection{Include-what-you-use}\label{section:iwyu}
 En C et en C++, on peut utiliser la directive préprocesseur \verb'#include' afin d'inclure un fichier \emph{header} qui contient des déclarations de classes et de fonctions.
 Le préprocesseur copie tout simplement le contenu du fichier inclus à l'endroit où la directive est appelée.
 Ce mécanisme est relativement simple mais peut poser des problèmes lorsque les programmes contiennent beaucoup de fichiers.
@@ -438,134 +444,161 @@ Ce mécanisme est relativement simple mais peut poser des problèmes lorsque les
 En effet si un fichier \verb'C.cpp' inclus un fichier \verb'B.hpp' qui lui même inclus \verb'A.hpp', alors les symboles définis dans \verb'A.hpp' sont disponibles dans \verb'C.cpp'.
 Si on les y utilise, alors on peut oublier d'inclure \verb'A.hpp' dans \verb'C.cpp'.
 
-\begin{tikzpicture}[node distance=5cm]
-    \tikzstyle{file}=[rectangle,draw,minimum width=4cm,fill=blue!20,text width=4cm]
-    \node[file,label={A.cpp}] (A) {
-        \begin{lstlisting}[language=c++]
+\begin{center}
+    \begin{tikzpicture}[node distance=5cm]
+        \tikzstyle{file}=[rectangle,draw,minimum width=4.5cm,fill=blue!20,text width=4.5cm]
+        \node[file,label={A.cpp}] (A) {
+            \begin{lstlisting}[language=c++]
 class A {
-    ...
+  ...
 };
-        \end{lstlisting}
-    };
-    \node[file,right of=A,label={B.cpp}] (B) {
-        \begin{lstlisting}[language=c++]
+            \end{lstlisting}
+        };
+        \node[file,right of=A,label={B.cpp}] (B) {
+            \begin{lstlisting}[language=c++]
 #include "A.hpp"
 
 class B {
-    A a;
-    ...
+  A a;
+  ...
 };
-        \end{lstlisting}
-    };
-    \node[file,right of=B,label={C.cpp}] (C) {
-        \begin{lstlisting}[language=c++]
+            \end{lstlisting}
+        };
+        \node[file,right of=B,label={C.cpp}] (C) {
+            \begin{lstlisting}[language=c++]
 #include "B.hpp"
 
 void function() {
-    A a; // via B.hpp
-    B b;
-    ...
+  A a; //via B.hpp
+  B b;
+  ...
 }
-        \end{lstlisting}
-    };
-    ;
-\end{tikzpicture}
+            \end{lstlisting}
+        };
+        ;
+    \end{tikzpicture}
+\end{center}
 
 En soit, cela n'est pas problématique, mais si plus tard on enlève \verb'A.hpp' de \verb'B.hpp' car on ne l'y utilise plus, alors on aura cassé la dépendance dans \verb'C.cpp'.
 
-\begin{tikzpicture}[node distance=5cm]
-    \tikzstyle{file}=[rectangle,draw,minimum width=4cm,fill=blue!20,text width=4cm]
-    \node[file,label={A.cpp}] (A) {
-        \begin{lstlisting}[language=c++]
+\begin{center}
+    \begin{tikzpicture}[node distance=5cm]
+        \tikzstyle{file}=[rectangle,draw,minimum width=4.5cm,fill=blue!20,text width=4.5cm]
+        \node[file,label={A.cpp}] (A) {
+            \begin{lstlisting}[language=c++]
 class A {
-    ...
+  ...
 };
-        \end{lstlisting}
-    };
-    \node[file,right of=A,label={B.cpp}] (B) {
-        \begin{lstlisting}[language=c++]
+            \end{lstlisting}
+        };
+        \node[file,right of=A,label={B.cpp}] (B) {
+            \begin{lstlisting}[language=c++]
 class B {
-    ...
+  ...
 };
-        \end{lstlisting}
-    };
-    \node[file,right of=B,label={C.cpp}] (C) {
-        \begin{lstlisting}[language=c++]
+            \end{lstlisting}
+        };
+        \node[file,right of=B,label={C.cpp}] (C) {
+            \begin{lstlisting}[language=c++]
 #include "B.hpp"
 
 void function() {
-    A a; // erreur
-    B b;
-    ...
+  A a; //erreur
+  B b;
+  ...
 }
-        \end{lstlisting}
-    };
-    ;
-\end{tikzpicture}
+            \end{lstlisting}
+        };
+        ;
+    \end{tikzpicture}
+\end{center}
 
 Un autre problème encore plus grave serait d'avoir \verb'C.cpp' qui inclus d'abord \verb'A.hpp' puis \verb'B.hpp' mais que \verb'B.hpp' n'inclus pas \verb'A.hpp' alors qu'il utilise ses symboles.
-Ici on ne se rendrait pas compte qu'il manque une inclusion à cause du mécanisme de copier-coller.
+Ici on ne se rendrait pas compte qu'il manque une inclusion à cause du mécanisme de copier-coller et l'utilisation direct de \verb'B.cpp' mènerait à une erreur.
 
-\begin{tikzpicture}[node distance=5cm]
-    \tikzstyle{file}=[rectangle,draw,minimum width=4cm,fill=blue!20,text width=4cm]
-    \node[file,label={A.cpp}] (A) {
-        \begin{lstlisting}[language=c++]
+\begin{center}
+    \begin{tikzpicture}[node distance=5cm]
+        \tikzstyle{file}=[rectangle,draw,minimum width=4.5cm,fill=blue!20,text width=4.5cm]
+        \node[file,label={A.cpp}] (A) {
+            \begin{lstlisting}[language=c++]
 class A {
-    ...
+  ...
 };
-        \end{lstlisting}
-    };
-    \node[file,right of=A,label={B.cpp}] (B) {
-        \begin{lstlisting}[language=c++]
+            \end{lstlisting}
+        };
+        \node[file,right of=A,label={B.cpp}] (B) {
+            \begin{lstlisting}[language=c++]
 class B {
-    A a; // via C.cpp
-    ...
+  A a; //via C.cpp
+  ...
 };
-        \end{lstlisting}
-    };
-    \node[file,right of=B,label={C.cpp}] (C) {
-        \begin{lstlisting}[language=c++]
+            \end{lstlisting}
+        };
+        \node[file,right of=B,label={C.cpp}] (C) {
+            \begin{lstlisting}[language=c++]
 #include "A.hpp"
 #include "B.hpp"
 
 void function() {
-    A a;
-    B b;
-    ...
+  A a;
+  B b;
+  ...
 }
-        \end{lstlisting}
-    };
-    ;
-\end{tikzpicture}
+            \end{lstlisting}
+        };
+        ;
+    \end{tikzpicture}
+\end{center}
 
-Pour tenter de résoudre ce genre de problèmes, il existe l'outil \emph{include-what-you-use} qui analyse le code de la même manière qu'un compilateur et qui signale et corrige les problème d'inclusions.
+Ces problèmes peuvent paraître mineurs mais deviennent très chronophages sur une base de code très importante de comme celle de LHCb.
+Pour tenter de les résoudre, il existe l'outil \emph{include-what-you-use} qui analyse le code de la même manière qu'un compilateur et qui signale et corrige les problèmes d'inclusions.
 Pour cela il suit la règle : un fichier header doit être inclus si et seulement si il existe au moins un symbole utilisé qui est défini dans ce header.
 
-Depuis sa version 20, le C++ possède une autre manière de gérer les dépendances entre fichiers : les modules.
+Il faut également mentionner que depuis sa version 20, le C++ possède une autre manière de gérer les dépendances entre fichiers : les modules.
 L'idée est qu'un module peut décider d'exporter certains symboles, ainsi lorsqu'on l'importe on ne peut accéder qu'à ceux-ci.
-Ce système corrige les problèmes évoqués ci-dessus,
-cependant cette version est à peine disponible dans les derniers compilateurs à la date du stage et il faudra de toutes manières plusieurs années pour que LHCb passe à cette version.
+Ce système corrige certains problèmes évoqués ci-dessus,
+cependant C++20 est à peine disponible dans les derniers compilateurs à la date du stage et il faudra de toutes manières plusieurs années pour que LHCb l'adopte.
 
 \bigskip
 Ce sera le quatrième sujet d'étude.
 
+\subsection{Compilation sur ARM}\label{section:arm}
+Il existe plusieurs architectures de processeurs.
+La plus répandue pour les ordinateurs personnels et les serveurs est l'architecture \verb'x86_64', développée par Intel.
+\verb'arm' est très utilisée pour l'embarqué (smartphones et appareils connectés), mais certains ordinateurs en sont également équipés.
+
+De plus en plus de centres de calculs possèdent des machines tournant sous \verb'arm'.
+Faire fonctionner la pile LHCb sur ces machines deviendra donc nécessaire.
+
+Les architectures sont très différentes et donc un programme compilé pour l'une ne peut pas fonctionner pour l'autre.
+En revanche, un même code source écrit dans un langage comme le C ou le C++ peut être compilé pour chaque platforme et aura le même comportement sur chacune d'elles.
+Cependant cela n'est valable que si le code respecte scrupuleusement la norme du langage.
+Si ce n'est pas le cas, le programme a un comportement indéterminé, c'est-à-dire que son comportement peut varier selon le compilateur, l'architecture du processeur ou l'état de la machine pendant l'exécution.
+Par exemple en C, le contenu d'une variable non initialisé est indéterminé ; donc sa valeur peut être nulle tout comme contenir des valeurs aléatoires.
+
+Le code de la pile LHCb étant écrit en C++, la majeure partie du code est donc compatible.
+Il y a cependant certains fichiers qui comportent du code non standard, soit par erreur, soit par nécessité (par exemple si du code utilise une fonctionnalité unique du processeur).
+
+\bigskip
+Compiler la pile LHCb pour \verb'arm' sera le cinquième et dernier sujet du stage.
+
 
 \chapter{Méthode}
 \section{Environnement de travail}
-Le travail s'est fait sur un serveur tournant sous la distribution Linux CentOS 7.
+Le travail a été réalisé sur un serveur installé avec la distribution Linux CentOS 7.
 Celui-ci possède 64 processeurs d'architecture \verb'x86_64' tournant à $3.7 MHz$ et formant 2 noeuds \emph{NUMA}.
 Le serveur possède de plus $192 Go$ de mémoire.
 
-L'infrastructure de LHCb est constituée d'une pile de programmes dont chaque couche dépend de celles précédentes.
-Classiquement, les programmes sont compilés un à un et indépendamment.
+L'infrastructure de LHCb est constituée d'une pile de programmes dont chaque couche dépend des précédentes.
+Classiquement, elles sont compilées une à une et indépendamment.
 Cependant cela est peu pratique lorsque l'on cherche à faire des optimisations sur l'ensemble des compilations.
-C'est pourquoi le travail a d'abord été effectué sur une pile différente qui dispose d'un fichier \verb'CMakeLists.txt' global et qui s'applique donc à toute la pile.
+C'est pourquoi le travail a d'abord été effectué sur une pile différente qui dispose d'un fichier \verb'CMakeLists.txt' global et permettant de compiler toute la pile comme un seul projet.
 
-De plus, il est possible de compiler pour plusieurs platformes.
+De plus, il est possible de compiler la pile LHCb pour plusieurs platformes.
 Ici, il a été choisi de compiler vers \verb'x86_64_v3-centos7-gcc11+detdesc-opt+g'.
 En effet, au moment où le travail a été commencé, \verb'gcc11' était le compilateur avec lequel la pile était la plus stable.
 De plus, les machines les plus performantes ont une architecture \verb'x86_64_v3' et tournent sous \verb'centos7'.
-Enfin, il était pertinent d'utiliser une version déjà optimisée et avec les options de débuggage.
+Enfin, il était pertinent d'utiliser une version déjà optimisée et avec les options de débuggage (\verb'opt+g').
 
 Pour tester la rapidité d'exécution des programmes, deux tests ont principalement été utilisés :
 \begin{enumerate}
@@ -604,7 +637,8 @@ Un schéma explicatif plus détaillé de ces tests est disponible sur la figure 
         \ganttbar{PGO}{01-05-2023}{31-05-2023}\ganttnewline
         \ganttbar{Include-what-you-use}{29-05-2023}{11-06-2023}\ganttnewline
         \ganttbar{Fast-math}{12-06-2023}{09-07-2023}\ganttnewline
-        \ganttbar{Compilation sur ARM}{10-07-2023}{31-08-2023}\ganttnewline
+        \ganttbar{Compilation sur ARM}{10-07-2023}{31-07-2023}\ganttnewline
+        \ganttbar{Maintenance}{01-08-2023}{20-08-2023}\ganttnewline
         \ganttbar{Rédaction rapport}{15-05-2023}{15-08-2023}
     \end{ganttchart}
     \caption{Diagramme de Gantt.}
@@ -614,8 +648,8 @@ Un schéma explicatif plus détaillé de ces tests est disponible sur la figure 
 \section{Fusion des bibliothèques dynamiques}
 
 \subsection{Graphe des dépendances}
-Déjà, une première chose est d'avoir une idée des dépendances entre bibliothèques.
-Pour cela, graphviz, un outil intégré à CMake permet de créer des graphes des dépendances.
+Avant toute chose, il est intéressant d'avoir une idée des dépendances entre bibliothèques.
+Pour cela, graphviz, un outil intégré à CMake permet de créer des graphes de dépendances.
 Il suffit d'ajouter un argument lors de la configuration de CMake :
 \begin{verbatim}
 --graphviz=path/to/files.dot
@@ -648,45 +682,43 @@ Ainsi, dans le programme Gaudi, il y a déjà des fonctions CMake qui permettent
 Il est donc simple de copier la fonction \verb'gaudi_add_library', qui crée une bibliothèque partagée, en une fonction \verb'gaudi_add_static_library'.
 Cette fonction utilise la fonction CMake \verb'add_library' dans laquelle il suffit de changer le paramètre \verb'STATIC' en \verb'SHARED'.
 
-Avec cette nouvelle fonction, il est désormais facile de remplacer les bibliothèques partagée de la pile LHCb en bibliothèques statiques.
+Avec cette nouvelle fonction, il est en théorie facile de remplacer les bibliothèques partagée de la pile LHCb en bibliothèques statiques.
 
 \subsubsection{Position-independant code}
 Cependant on peut se retrouver dans un cas où une bibliothèque statique est linkée (et donc intégrée) à une bibliothèque dynamique ou à un module.
-Or le principe d'une bibliothèque dynamique est que comme elle est chargée dynamiquement, elle peut se retrouver à plusieurs endroits dans la mémoire, elle doit donc être compilée en \emph{position-independant code} pour pouvoir fonctionner.
+Or le principe d'une bibliothèque dynamique est d'être chargée dynamiquement, sa position en mémoire n'est pas connue à priori, elle doit donc être compilée en \emph{position-independant code} pour pouvoir fonctionner.
 Ce n'est pas le cas d'une bibliothèque statique pour laquelle on sait à la compilation où son code machine sera en mémoire relativement à l'exécutable.
 On doit donc rajouter l'option de compilation \verb'-fpic' pour compiler les bibliothèques statiques en position-independant code (on pourra l'enlever lorsque tout sera statique).
 
 \subsection{Passage des modules en bibliothèques statiques}
-Cherchons maintenant à rendre les modules statiques.
-
 Gaudi propose également une fonction CMake \verb'gaudi_add_module'.
 On peut donc simplement remplacer les appels à cette fonction par l'appel à la fonction précédemment créée \verb'gaudi_add_static_library'.
 Il faut également linker ces nouvelles bibliothèques statiques avec l'exécutable.
 Pour cela il suffit d'utiliser la fonction CMake \verb'target_link_libraries' sur l'exécutable.
 
 \subsubsection{whole-archive}
-Ceci compile, en revanche il y a un problème à l'exécution.
+Cette approche permet de compiler, en revanche il y a un problème à l'exécution.
 En effet par défaut le linker supprime le code qui n'est pas utilisé.
 
-Or dans la pile LHCb, chaque module est un plugin qui est chargé sur demande par le programme Gaudi.
-Celui-ci contient un service qui fournit les algorithmes aux autres parties du code, et qui charge les plugins correspondant si besoin.
+Or dans la pile LHCb, les modules sont des plugins qui sont chargés sur demande par le programme Gaudi.
+Celui-ci contient un service qui fournit des algorithmes à d'autres, et qui charge les plugins correspondant si besoin.
+Le mécanisme pour rendre ces algorithmes accessibles est de les enregistrer lors du chargement du module via un appel de fonction.
 Ainsi lorsqu'un module est chargé, une fonction est exécutée qui enregistre le module auprès de ce service.
 
-En statique, cette fonction n'est donc pas utilisée et est donc supprimée.
+En mode statique, cette fonction n'est plus appelée et est donc supprimée.
 De ce fait, tout le reste du code du module n'est plus utilisé et est donc également supprimé.
 
-Résoudre ce problème correctement consisterait à revoir en profondeur ce système, ce qui semble trop complexe à ce stade.
+Résoudre ce problème correctement consisterait à revoir en profondeur le système de plugins de LHCb, ce qui semble trop complexe à ce stade.
 La solution retenue a été d'utiliser l'option de linkage \verb'-Wl,--whole-archive' qui force le linker à garder l'ensemble du code.
 
 \subsubsection{allow-multiple-definition}
-Cependant des symboles sont inclus plusieurs fois puisque plusieurs bibliothèques utilisent les mêmes et que \verb'whole-archive' les oblige à tout inclure,
-ce qui mène à une erreur que l'on peut désactiver avec \verb'-Wl,--allow-multiple-definition'.
+Cependant certains symboles sont inclus plusieurs fois puisque plusieurs bibliothèques utilisent les mêmes et que \verb'whole-archive' oblige le linker à tout inclure.
+Cela mène à une erreur que l'on peut désactiver avec l'option \verb'-Wl,--allow-multiple-definition'.
 
 \subsubsection{export-dynamic}
-Un autre problème est que l'on charge toujours dynamiquement quelques modules, notamment des foncteurs.
-Or ceci ont besoin des symboles définis dans les bibliothèques désormais statiques et qui ne sont donc plus visibles.
-Il faut donc activer l'option \\
-\verb'-Wl,--export-dynamic' pour résoudre cet autre problème.
+Un dernier problème est que l'on charge toujours dynamiquement quelques modules, notamment des foncteurs.
+Or ceux-ci ont besoin des symboles définis dans les bibliothèques désormais statiques et qui ne sont donc plus visibles.
+L'option \verb'-Wl,--export-dynamic' résout ce dernier problème en forçant les symboles à être exportés.
 
 \subsubsection{Résumé}
 Ainsi, pour remplacer les modules par des bibliothèques statiques, il faut linker avec les options :
@@ -696,37 +728,55 @@ Ainsi, pour remplacer les modules par des bibliothèques statiques, il faut link
 
 Il n'est normalement pas recommandé d'utiliser ces options car elles ne correspondent pas au comportement usuel du linker et peuvent donc être à l'origine de bugs ou de mauvaises optimisations.
 Cependant pour notre étude elles permettent d'obtenir un exécutable presque entièrement statique (quelques bibliothèques ont du être laissées dynamiques et les foncteurs sont par nature dynamiques).
-L'ensemble fonctionne comme le montrent les tests d'intégration qui tournent toujours et sont corrects.
+L'ensemble fonctionne comme le montrent les tests d'intégration qui tournent toujours et sont corrects, et permet de mesurer le gain éventuel.
 
 \section{Guided optimization}
 \subsection{Méthode de recherche}
 La compilation de la pile complète pouvant prendre plus d'une demi-heure, tester le fonctionnement des différentes options serait très long.
-Pour être plus efficace dans l'étape de recherche, j'ai donc d'abord testé sur un autre programme plus petit.
+Pour être plus efficace dans l'étape de recherche, j'ai donc d'abord testé les options sur un autre programme plus petit.
 J'ai choisi d'utiliser le programme de RayTracing que j'ai développé pour mon TIPE.
 Il a les avantages :
 \begin{enumerate}
     \item d'être suffisamment complexe pour ne pas être optimisé trivialement par le compilateur ;
-    \item de lui aussi reposer sur l'exécution d'un même algorithme des milliers de fois pour obtenir un résultat statistique ;
-    \item de ne compiler qu'en une dizaine de secondes.
+    \item de reposer sur l'exécution d'un même algorithme des milliers de fois afin d'obtenir un résultat statistique ;
+    \item de compiler en une dizaine de secondes.
 \end{enumerate}
-De cette manière j'ai pu dans un premier temps comprendre les effets des différentes options avant de les appliquer sur la pile.
+De cette manière j'ai pu dans un premier temps comprendre les effets des différentes options avant de les appliquer sur la pile LHCb complète.
 
 \subsection{Profile-guided optimization}
 \subsubsection{Mise en place}
 Le profile-guided optimization est inclus dans gcc et clang.
 Il suffit d'utiliser l'option de compilation \verb'-fprofile-generate' qui va permettre de compiler une version du programme avec instrumentation.
 
-Lorsque cette version de l'exécutable est exécutée, le programme génère des fichiers de profils.
+Lorsque cette version de l'exécutable est exécutée, le programme génère des fichiers de profils \verb'.gcda'.
 Ceux-ci correspondent à des compteurs qui permettent de connaître l'utilisation de chaque fonction et chaque branchement.
 
 Pour compiler le programme final, l'option \verb'-fprofile-use' est utilisée et les profils sont passés au compilateur.
 On peut aussi rajouter l'option \verb'-fprofile-correction' pour corriger certains problèmes qui peuvent apparaître avec le \emph{multi-threading}.
-En effet les compteurs utilisés pendant l'instrumentation ne sont pas thread-safe, ils peuvent donc être incrémentés en même temps à deux endroits différents.
+En effet les compteurs utilisés pendant l'instrumentation ne sont pas thread-safe, ils peuvent donc être légèrement faussés.
 
 Ces options sont mises de manière globale sur l'ensemble du projet CMake.
 
 \subsubsection{Difficultés}
-Le profile-guided optimization n'a d'abord pas donné de résultats probants, la vitesse d'exécution ne changeant pas.
+Le profile-guided optimization n'a d'abord pas donné de résultats probants, la vitesse d'exécution ne changeant ni sur le test Hlt1 ni sur le test Hlt2.
+
+L'outil VTune créé par \emph{Intel} permet de comprendre l'utilisation du processeur par un programme.
+On peut notamment voir le taux de mauvaises prédictions de branchement ou le temps que le processeur passe à attendre la mémoire.
+Cet outil a d'abord été utilisé pour voir si le PGO avait un impact sur l'utilisation du processeur.
+Cependant, que ce soit pour le test Hlt1 (Figure \ref{hlt1_vtune_pipe}) ou le test Hlt2 (Figure \ref{hlt2_vtune_pipe}), les résumés VTune sont les mêmes avec ou sans le profile-guided optimization.
+
+\begin{figure}[H]
+    \includegraphics[width=0.8\textwidth, center]{hlt1_vtune_pipe.png}
+    \caption{Résumé de VTune pour le test \emph{Hlt1} (référence)}
+    \label{hlt1_vtune_pipe}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[width=0.8\textwidth, center]{hlt2_vtune_pipe.png}
+    \caption{Résumé de VTune pour le test \emph{Hlt2} (référence)}
+    \label{hlt2_vtune_pipe}
+\end{figure}
+
 Après de plus amples investigations, il est apparu que le PGO n'est efficace que si le link-time optimization est également activé.
 
 \subsection{AutoFDO}
@@ -751,8 +801,8 @@ Enfin l'exécutable est recompilé avec l'option \verb'-fauto-profile=perf.gcov'
 
 \subsubsection{Difficultés}
 Aucune accélération n'a été obtenue avec AutoFDO.
-Le PGO a donc été privilégié lorsqu'il a commencé à donné des résultats.
-Pour expliquer l'absence d'accélération de l'exécution du programme, l'hypothèse la plus probable est que \verb'create_gcov' n'arrive pas à convertir correctement les données issues de \verb'perf'.
+Le PGO a donc été privilégié lorsqu'il a commencé à donner des résultats.
+Pour expliquer l'absence d'accélération de l'exécution du programme avec AutoFDO, l'hypothèse la plus probable est que \verb'create_gcov' n'arrive pas à convertir correctement les données issues de \verb'perf'.
 
 \subsection{Link-time optimization}
 La mise en place du link-time optimization se fait à deux moments différents :
@@ -782,43 +832,43 @@ Cependant l'opérateur de test d'égalité est défini pour les flottants en C e
 Celui-ci vaut vrai si les deux nombres flottants sont strictement identiques, c'est-à-dire si leur représentation est la même bit à bit.
 On peut aussi préciser que \verb'-0.0 == +0.0' est vrai tandis que \verb'NaN' n'est égal à rien, pas même à lui-même.
 En général, l'utilisation de cet opérateur est dangereuse et doit être évitée.
-De plus, les résultats d'un calcul sont dépendant de l'architecture du processeur ou des options de compilation.
+En effet, les résultats exacts d'un calcul sont dépendant de l'architecture du processeur ou des options de compilation.
 
 Pour repérer ces utilisations, il existe l'option de compilation \verb'-Wfloat-equal' qui imprime un \emph{Warning} pour chaque test d'égalité.
-Remplacer ces tests par d'autres tenant compte d'une erreur est important pour éviter qu'un simple arrondi puisse faire basculer leurs résultats.
+Remplacer ces tests par d'autres tenant compte d'une erreur est important pour éviter qu'un simple arrondi puisse faire basculer les résultats.
 
 \subsubsection{Validité d'une division}
 Une utilisation courante du test d'égalité sur les nombres flottants est la division par 0.
 Celle-ci étant impossible, il faut trouver un moyen de gérer ce cas en informatique.
 
 On trouve souvent ce genre de code.
-\begin{lstlisting}[language=c++]
+\begin{lstlisting}[language=c++,numbers=left]
 if (f(x) != 0.)
     return 5./f(x);
 else
     ...
 \end{lstlisting}
-Outre le problème évoqué plus haut, ici \verb'f(x)' est à priori calculé deux fois et il se pourrait très bien que la première fois son résultat soit proche de 0 sans être égal, tandis que la deuxième fois le résultat soit exactement 0.
+Outre le problème évoqué plus haut concernant la comparaison, on note qu'ici \verb'f(x)' est à priori calculé deux fois et il se pourrait très bien que la première fois son résultat soit proche de 0 sans être égal à 0, tandis que la deuxième fois le résultat soit exactement 0.
 Cela peut arriver si par exemple le compilateur décide d'utiliser du \emph{FMA} (jeu d'instructions pour le calcul flottant) pour l'un des deux calculs mais pas l'autre, l'arrondi pouvant être différent.
-Ainsi le test passerait et on diviserai pas zéro.
+Ainsi le test de la 1\iere ligne peut passer tout en ayant une division par 0 à la deuxième ligne.
 
-Ce cas est déjà apparu en production pour LHCb et a nécessité des heures de débuggage.
-Le problème n'a pu être identifié qu'en regardant le code assembleur.
+À noter que ce cas précis est déjà apparu en production pour LHCb et a nécessité des heures de débuggage.
+En effet, le problème n'a pu être identifié qu'en inspectant le code assembleur généré.
 
 Une solution qui vient à l'esprit serait de ne calculer qu'une seule fois \verb'f(x)'.
-\begin{lstlisting}[language=c++]
+\begin{lstlisting}[language=c++,numbers=left]
 float y = f(x);
 if (y != 0.)
     return 5./y;
 else
     ...
 \end{lstlisting}
-En fait ce code ne change rien car le compilateur peut décider de toujours faire le calcul deux fois (à moins d'utiliser le mot clé \verb'volatile'), si par exemple il estime que c'est plus rapide que de passer par la mémoire.
+En fait ce code ne résout rien car le compilateur peut encore décider de faire le calcul deux fois (à moins d'utiliser le mot clé \verb'volatile'), si par exemple il estime que c'est plus rapide que de passer par la mémoire.
 De plus, même si \verb'f(x)' ne vaut pas 0 mais qu'il en est suffisamment proche, \verb'5./f(x)' peut valoir \verb'+Inf'.
 
-Une solution plus robuste au problème est de faire la division puis de vérifier après coup qu'elle s'est bien passée.
+Une solution plus robuste au problème est donc de faire la division puis de vérifier après coup qu'elle s'est bien passée.
 Pour cela on peut utiliser \verb'isfinite'.
-\begin{lstlisting}[language=c++]
+\begin{lstlisting}[language=c++,numbers=left]
 float result = 5./f(x);
 if (std::isfinite(result))
     return result;
@@ -831,7 +881,8 @@ Il est également possible d'utiliser le mécanisme de \emph{trapping} qui perme
 Mais cette méthode se met en place à l'échelle du programme et ne devrait plus être utilisée de nos jours.
 
 \subsection{Fast-math}
-On peut activer fast-math en compilant avec l'option \verb'-ffast-math', mais cela ne fait qu'activer d'autres options.
+On peut activer fast-math en compilant avec l'option \verb'-ffast-math'.
+En réalité cette option ne fait qu'en activer d'autres.
 Les principales sont :
 
 \subsubsection{no-math-errno}
@@ -865,14 +916,14 @@ Cela permet de nombreuses optimisations :
 \begin{enumerate}
     \item Simplification d'expressions comme \verb'2.0*x*3.0' en \verb'6.0*x' ;
     \item Simplification de calculs comme \verb'a+b-a' en \verb'b' qui est plus rapide et plus précis.
-    \item Meilleure vectorisation, c'est-à-dire utiliser des instructions du processeur permettant de faire un calcul sur plusieurs données à la fois.
+    \item Meilleure vectorisation des opérations, c'est-à-dire utiliser des instructions du processeur permettant de faire un calcul sur plusieurs données à la fois.
           Par exemple \verb'((a*b)*c)*d' peut être changé en \verb'(a*b)*(c*d)' ce qui permet de calculer \verb'a*b' et \verb'c*d' en même temps.
     \item En réordonnant certains calculs, il est possible d'utiliser des jeux d'instruction du processeur comme le \emph{FMA}.
-          Celui-ci permet par exemple de faire une multiplication suivie d'une addition en une seule instruction.
+          Celui-ci permet de faire une multiplication suivie d'une addition en une seule instruction.
 \end{enumerate}
 
 Du fait de tous ces changements, les résultats des calculs peuvent changer.
-Dans un certain nombre de cas ils peuvent être plus justes du fait du FMA qui est plus précis et des simplifications qui en réduisant le nombre de calculs limitent le nombre d'arrondis effectués.
+Dans un certain nombre de cas ils peuvent être plus justes du fait du FMA qui est plus précis et des simplifications qui, en réduisant le nombre de calculs, limitent le nombre d'arrondis effectués.
 Cependant il existe quelques algorithmes numériques qui reposent sur les règles d'arrondis et qui risquent donc de ne plus fonctionner correctement avec associative-math.
 
 \subsubsection{reciprocal-math}
@@ -880,13 +931,13 @@ Pour la plupart des processeurs, il est plus rapide de calculer une multiplicati
 Ainsi, si on veut diviser plusieurs nombres par un même nombre $y$ (ce qui arrive typiquement lorsqu'on normalise un vecteur), il peut être plus intéressant de calculer une fois l'inverse de $y$ puis de le multiplier à chaque nombre que l'on veut diviser.
 
 C'est ce que permet reciprocal-math qui va remplacer \verb'x/y' par \verb'x*(1/y)' lorsque cela permet un gain de temps.
-Ceci peut engendrer une perte de précision.
+Ceci peut cependant engendrer une perte de précision.
 
 \subsubsection{unsafe-math-optimizations}
-Cette options active no-signed-zeros, no-trapping-math, associative-math, reciprocal-math ainsi que d'autre optimisations comme la non prise en charge des nombres dénormalisés (nombres très proches de $0$).
+Cette option active no-signed-zeros, no-trapping-math, associative-math, reciprocal-math ainsi que d'autre optimisations comme la non prise en charge des nombres dénormalisés (nombres très proches de $0$).
 
-L'activer change des options du \emph{FPU} (unité de calcul des flottants) du processeur, ce qui peut impacter les autre bibliothèques chargées dynamiquement.
-Il y a donc un effet de bord sur les autre bibliothèques qui peut être très difficile à débuguer.
+L'activer change des options du \emph{FPU} ("Floating Point Unit" ou unité de calcul des flottants) du processeur, ce qui peut impacter les autre bibliothèques chargées dynamiquement.
+Il y a donc un effet de bord sur les autre bibliothèques qui peut être très difficile à débuguer en cas de problème.
 
 \subsection{Mesure de l'instabilité}
 L'objectif premier en activant fast-math est d'accélérer l'exécution du programme.
@@ -901,11 +952,11 @@ On peut ensuite ouvrir ce fichier avec un logiciel de tableur afin de mesurer l'
 
 Ainsi on peut voir quels sont les algorithmes les plus sensibles aux options de fast-math et donc probablement numériquement instables.
 
-\section{Include-what-you-use}
-\emph{iwyu} a été conçu pour fonctionner avec le compilateur \emph{clang} et nécessite \emph{llvm}.
+\section{Include-what-you-use (iwyu)}
+\emph{iwyu} a été conçu pour fonctionner avec le compilateur \emph{clang}.
 Encore une fois, il est aisé d'utiliser cet outil à travers CMake.
-En effet il suffit de donner à la variable \verb'CMAKE_CXX_INCLUDE_WHAT_YOU_USE' la commande faisant tourner \verb'include-what-you-use'.
-Il faut alors faire tourner CMake avec la version de clang correspondante comme compilateur.
+En effet il suffit de donner à la variable \verb'CMAKE_CXX_INCLUDE_WHAT_YOU_USE' la commande \verb'include-what-you-use'.
+Il faut alors exécuter CMake avec la version de clang correspondante comme compilateur.
 
 Initialement, une version compatible avec \verb'clang12' a été utilisée car elle était déjà installée sur le système.
 Cependant, un bug est apparu : l'outil gère mal certaines références cycliques.
@@ -916,113 +967,160 @@ Cette nouvelle version a permis d'utiliser iwyu mais a mis en lumière un certai
 \begin{itemize}
     \item suppression d'inclusions pourtant nécessaires ;
     \item ajout d'inclusions pas nécessairement utiles ;
-    \item certaines architecture utilisés sont incompatibles avec le principe de l'outil, comme lorsqu'un fichier header définissant des \emph{templates} inclut à sa fin le fichier contenant le code de ces templates.
+    \item certaines architecture utilisés sont incompatibles avec le principe de l'outil, comme lorsqu'un fichier header définissant des \emph{templates} inclut à sa fin le fichier contenant le code de ces templates (Figure \ref{iwyu_templates}).
 \end{itemize}
-\begin{tikzpicture}[node distance=7cm]
-    \tikzstyle{file}=[rectangle,draw,minimum width=6cm,fill=blue!20,text width=6cm]
-    \node[file,label={A.hpp}] (hpp) {
-        \begin{lstlisting}[language=c++]
+
+\begin{figure}[H]
+    \begin{center}
+        \begin{tikzpicture}[node distance=7cm]
+            \tikzstyle{file}=[rectangle,draw,minimum width=6cm,fill=blue!20,text width=6cm]
+            \node[file,label={A.hpp}] (hpp) {
+                \begin{lstlisting}[language=c++]
 #ifndef __A_HPP__
 #define __A_HPP__
 
 template<typename T>
 class A {
-    void function();
+  void function();
 };
 
 #include "A.icpp"
 
 #endif
-  \end{lstlisting}
-    };
-    \node[file,right of=hpp,label={A.icpp}] (icpp) {
-        \begin{lstlisting}[language=c++]
+                \end{lstlisting}
+            };
+            \node[file,right of=hpp,label={A.icpp}] (icpp) {
+                \begin{lstlisting}[language=c++]
 template<typename T>
 void A<T>::function() {
-    ...
+  ...
 }
-  \end{lstlisting}
-    };
-    ;
-\end{tikzpicture}
+                \end{lstlisting}
+            };
+            ;
+        \end{tikzpicture}
+        \caption{Exemple de header déclarant des templates et incluant le fichier contenant leurs définitions}
+        \label{iwyu_templates}
+    \end{center}
+\end{figure}
 
-À cause de ces problèmes, l'idée initiale d'une utilisation systématique d'iwyu a été revue.
+À cause de ces problèmes, l'idée initiale d'une utilisation systématique d'iwyu a été abandonnée.
 L'outil a néanmoins permis de trouver et de corriger des erreurs existantes.
+
+\section{Compilation sur ARM}
+La pile LHCb avait déjà été adaptée pour \verb'arm' il y a quelques années.
+La plupart des problèmes avaient donc été résolus.
+L'enjeu est donc de corriger les nouveaux éventuels problèmes qui sont apparus depuis.
+
+\subsection{Platforme de travail}
+Une machine de travail \verb'arm' a été installée pour faire ce travail.
+L'architecture précise est \verb'armv8.1_a' et le système d'exploitation est Centos 7.
+Le compilateur \verb'gcc11' a de nouveau été utilisé, celui-ci fonctionnant également pour \verb'arm'.
+
+\subsection{MDF}
+Dans un premier temps, les programmes Gaudi, Detector et LHCb ont été compilés avec succès.
+Cependant à l'exécution, un problème critique est apparu lors de la lecture des fichier \verb'.mdf' (format spécifique à LHCb) qui permettent de stocker les données issues du détecteur.
+
+Le code responsable du parsing de ces fichiers a un fonctionnement particulier.
+Il déclare des structures dont la forme correspond au format MDF \cite{edms784588} et s'assure qu'il n'y ait pas de padding (espace mémoire ajouté par le compilateur entre les différents attributs d'une structure afin de les aligner).
+Ainsi, lors du parsing d'un fichier, il fait un simple \verb'reinterpret_cast' du pointeur vers les données binaires en un pointeur vers l'une de ces structures.
+Bien que fonctionnant, ce code n'est pas standard car si la structure compilée n'a pas exactement la même forme binaire que le format de fichier, alors les données seront mal parsées.
+
+En l’occurrence, le problème venait de l'une des fonctions de checksum :
+
+\begin{lstlisting}[language=c++,numbers=left]
+unsigned int hash32Checksum( const void* ptr, size_t len ) {
+    unsigned int hash = 0;
+    const char*  k    = (const char*)ptr;
+    for ( size_t i = 0; i < len; ++i, ++k ) {
+        hash += *k;
+        hash += ( hash << 10 );
+        hash ^= ( hash >> 6 );
+    }
+    hash += ( hash << 3 );
+    hash ^= ( hash >> 11 );
+    hash += ( hash << 15 );
+    return hash;
+}
+\end{lstlisting}
+
+Cette fonction prend en paramètre un pointeur vers des données binaires qui étaient interprétées comme des caractères.
+Or en C il n'est pas définit si le type \verb'char' est par défaut signé ou non ; et il se trouve que sur platforme \verb'x86_64' il est signé, alors qu'il ne l'est pas sur \verb'arm'.
+Les opérations effectuées sur ces caractères n'étaient donc pas ceux attendus sur \verb'arm'.
+
+La solution a simplement été d'explicitement ajouter \verb'unsigned' devant chaque \verb'char' à la ligne 3 :
+\begin{lstlisting}[language=c++]
+signed const char*  k    = (const signed char*)ptr;
+\end{lstlisting}
+
+Après cette correction, tous les problèmes restant dans le programme LHCb n'étaient que des problèmes mineurs.
+
+\subsection{Catboost}
+La compilation du programme Rec a ensuite été tentée.
+Le seul problème se situe dans un algorithme nommé \verb'MuonID' qui dépend de \verb'catboost' une bibliothèque externe.
+Celle-ci n'est en effet pas disponible sur \verb'arm' dans les releases de LHCb.
+
+Les dernières versions du code de \verb'catboost' peuvent être compilées pour \verb'arm' mais ce n'est pas le cas des plus anciennes.
+La solution serait donc de passer à une version plus récente.
+
+Cependant le problème est en partie politique.
+Catboost est développé par des ingénieurs de l'entreprise russe \emph{Yandex} qui faisait partie de la collaboration LHCb mais qui en a été en partie exclue depuis l'invasion de l'Ukraine par la Russie.
+Le support de cette bibliothèque n'est donc plus garantie pour LHCb ; et comme elle n'est utilisée que dans un seul algorithme, la décision de trouver une alternative ou non doit être prise.
+
+En attendant, il a été possible de compiler Rec sans \verb'MuonID'.
+Un grand nombre de tests dépendent de cet algorithme pour fonctionner et n'ont donc pas pu être testés.
+En revanche le test Hlt1 qui n'en dépend pas a fonctionné normalement, ce qui montre que la pile LHCb peut au moins en partie fonctionner sur \verb'arm'.
 
 
 \chapter{Résultats}
 
-\section{Amélioration de la rapidité d'exécution}
-Pour mesurer les améliorations, des \emph{throughput test} ont été faits.
-Ceux-ci consistent à faire tourner les algorithmes sur 1000 évènements.
+\section{Amélioration de la vitesse d'exécution}
+Pour mesurer les améliorations, des \emph{throughput tests} ont été menés.
+Ceux-ci consistent à exécuter les algorithmes sur 1000 évènements.
 On mesure le temps entre $10\%$ et $90\%$ des évènements traités afin de laisser le cache se remplir et de ne mesurer que le temps de calcul (et pas le temps de chargement).
-De plus, on exécute le test sur un noeud NUMA afin que la mémoire et le processeur fonctionnent bien ensembles.
+De plus, on exécute le test sur un seul noeud NUMA afin d'éviter de possibles limitations dues à l'architecture NUMA.
 On obtient pour chaque test le nombre d'évènements traités par secondes.
 Il suffit ensuite de comparer le résultat du test avec celui de la référence qui est fait dans les mêmes conditions pour obtenir l'amélioration.
 
-L'outil VTune créé par \emph{Intel} permet de comprendre l'utilisation du processeur par un programme.
-On peut notamment voir le taux de mauvaises prédictions de branchement ou le temps que le processeur passe à attendre la mémoire.
-
 \emph{Hlt1}, qui fait une reconstruction partielle et rapide, a été testé sur la version statique et PGO, mais aucune amélioration n'a été observée.
-Son code ayant déjà été optimisé il y a quelques temps, ce n'est pas étonnant, comme le montrent les figures \ref{hlt1_vtune_pipe} et \ref{hlt2_vtune_pipe}.
-
-\begin{figure}[H]
-    \includegraphics[width=0.8\textwidth, center]{hlt1_vtune_pipe.png}
-    \caption{Résumé de VTune pour le test \emph{Hlt1} (référence)}
-    \label{hlt1_vtune_pipe}
-\end{figure}
+Son code ayant déjà été optimisé il y a quelques temps, ce n'est pas étonnant.
 
 Le test \emph{Hlt2}, qui fait une reconstruction complète et plus lente, a lui aussi été testé et a cette fois permis d'obtenir des améliorations.
-
-\begin{figure}[H]
-    \includegraphics[width=0.8\textwidth, center]{hlt2_vtune_pipe.png}
-    \caption{Résumé de VTune pour le test \emph{Hlt2} (référence)}
-    \label{hlt2_vtune_pipe}
-\end{figure}
+Celles-ci sont présentées dans les sections suivantes.
 
 \section{Bibliothèques statiques}
-Le travail effectué a permis de remplacer les bibliothèques partagées et les modules par des bibliothèques statiques à l'exception de quelques une.
+Le travail effectué a permis de remplacer les bibliothèques partagées et les modules par des bibliothèques statiques à l'exception de quelques unes.
 Ainsi, l'exécutable final passe de $20 Ko$ à $2,5 Go$ et contient pratiquement tout le code de la pile.
 
-Des throughput tests ont été effectués avec le link-time optimization activé :
-\begin{center}
-    \begin{tabular}{ c c c }
-        Optimisation & Amélioration & Intervalle de confiance ($2\sigma$) \\
-        Static LTO   & $0.87\%$     & $\pm 0.60\%$
-    \end{tabular}
-\end{center}
+Des \emph{throughput tests} ont été effectués :
+\begin{figure}[H]
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimisation & Amélioration & Intervalle de confiance ($2\sigma$) \\
+            Static       & $0.87\%$     & $\pm 0.60\%$
+        \end{tabular}
+    \end{center}
+    \caption{Amélioration de la vitesse d'exécution avec des bibliothèques statiques par rapport à la référence}
+    \label{results_static}
+\end{figure}
 
-On remarque donc qu'il n'y a pas d'amélioration significative en ce qui concerne la vitesse d'exécution.
-En revanche on a bien vu que cela pouvait entraîner des bugs supplémentaires, notamment avec les foncteurs.
-
-Cette piste ne semble donc pas concluante car elle apporte des problèmes sans donner d'amélioration.
+Aucune amélioration significative en ce qui concerne la vitesse d'exécution n'est visible.
+Au vue des problèmes rencontrées pour sa mise en oeuvre, cette piste a donc été abandonnée.
 
 \section{Guided optimization}
 Le profile-guided optimization a permis pendant les phases de recherche d'obtenir une accélération lorsqu'il était conjointement utilisé avec le link-time optimization.
 Cela n'a pas été le cas avec AutoFDO.
 
-\subsection{Amélioration des performances}
-Ainsi des throughput test ont été faits pour le LTO et le PGO avec LTO.
-Une version combinant la version statique avec le PGO et le LTO a également été testée :
-\begin{center}
-    \begin{tabular}{ c c c }
-        Optimisation      & Amélioration & Intervalle de confiance ($2\sigma$) \\
-        LTO               & $0.17\%$     & $\pm 1.12\%$                        \\
-        LTO \& PGO        & $6.74\%$     & $\pm 1.44\%$                        \\
-        Static LTO \& PGO & $6.88\%$     & $\pm 0.83\%$
-    \end{tabular}
-\end{center}
-
-Il y a un net gain de performance à utiliser le profile-guided optimization et le link-time optimization (environ $7\%$ d'amélioration).
-Ceci peut représenter plusieurs centaines de machines à l'échelle des centres de calculs du LHCb.
-
 \subsection{Code final}
 Le code finalement ajouté au CMake global du projet est relativement simple.
 
+La variable \verb'PGO_PATH' peut spécifier le dossier où créer et utiliser les profils, par défaut dans les dossiers de build.
+
 D'abord pour créer la version du programme avec les options d'instrumentation, il suffit de passer à CMake la variable \verb'PGO=GENERATE' grâce à ce code :
 \begin{lstlisting}[language=bash,numbers=left]
-if("${PGO}" MATCHES "GENERATE")
+if("${PGO}" MATCHES "GENERATE") # Si la variable PGO contient "GENERATE"
 	message("PGO generate")
+        # Ajout du flag -fprofile-generate
 	if(DEFINED PGO_PATH)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-generate=${PGO_PATH}")
 	else()
@@ -1033,52 +1131,77 @@ endif()
 
 Ensuite un code similaire permet d'activer le LTO et d'utiliser les profils précédemment créé pour le PGO via \verb'PGO=USE' :
 \begin{lstlisting}[language=bash,numbers=left]
-if("${PGO}" MATCHES "USE")
+if("${PGO}" MATCHES "USE") # Si la variable PGO contient "USE"
 	message("PGO use")
+        # Ajout des flags -fprofile-use et -fprofile-correction
 	if(DEFINED PGO_PATH)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-use=${PGO_PATH} -fprofile-correction")
 	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-use -fprofile-correction")
 	endif()
+        # Activation du LTO
 	include(CheckIPOSupported)
-	check_ipo_supported()
+	check_ipo_supported() # Erreur si LTO non supporte
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 \end{lstlisting}
 
-La variable \verb'PGO_PATH' peut spécifier le dossier où créer ou utiliser les profils, par défaut dans les dossiers de build.
+\subsection{Amélioration des performances}
+Ainsi des \emph{throughput tests} ont été réalisés pour le LTO seul et pour le PGO + LTO.
+Une version combinant la version statique avec le PGO et le LTO a également été testée :
+\begin{figure}[H]
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimisation      & Amélioration & Intervalle de confiance ($2\sigma$) \\
+            LTO               & $0.17\%$     & $\pm 1.12\%$                        \\
+            LTO \& PGO        & $6.74\%$     & $\pm 1.44\%$                        \\
+            Static LTO \& PGO & $6.88\%$     & $\pm 0.83\%$
+        \end{tabular}
+    \end{center}
+    \caption{Amélioration de la vitesse d'exécution avec du profile-guided optimization par rapport à la référence}
+    \label{results_pgo}
+\end{figure}
+
+Le profile-guided optimization combiné au link-time optimization apporte un net gain de performance (environ $7\%$ d'amélioration).
+Ceci peut représenter plusieurs centaines de machines à l'échelle des centres de calculs de LHCb.
 
 \subsection{Mise en production}
-En l'état il n'est pas évident de mettre en production une version PGO de la pile LHCb.
+En l'état actuel de la pile LHCb, il n'est pas évident de mettre en production une version PGO.
 En effet les projets sont pour l'instant compilés et installés un à un.
 Or le PGO nécessite de tout compiler une première fois pour pouvoir exécuter le programme et créer les profils.
 Il faudrait donc faire évoluer la manière d'installer les programmes pour utiliser plus simplement cette version.
 
-Cette évolution est déjà en cours, aussi pour d'autres raisons, mais prendra du temps à être mises en place.
+Cette évolution est déjà en cours pour d'autres raisons, mais prendra du temps à être mises en place.
 
 \section{Fast-math}
-Après quelques tests, il a été décidé de ne pas utiliser finite-math-only car il y a un certain nombre d'endroits dans le code qui utilisent des flottants non-finis.
-De même pour unsafe-math-optimization qui a des effets de bords subtiles sur les bibliothèques chargées dynamiquement.
+Fast-math regroupe de nombreuses options.
+Après quelques tests, il a été décidé de ne pas utiliser finite-math-only car il supprime la possibilité d'utiliser des flottants non-finis, or le code LHCb en dépend à quelques endroits.
+De même unsafe-math-optimization a des effets de bords subtiles sur les bibliothèques chargées dynamiquement et n'a donc pas été considéré.
+Dans la suite, le terme \emph{fast-math} désigne toutes les options sauf les deux précédemment citées.
 
 \subsection{Amélioration des performances}
-On a donc fait des throughput tests avec associative-math et ses dépendances no-signed-zeros et no-trapping-math.
-D'autres ont été effectués avec en plus no-math-errno et reciprocal-math.
-Enfin on a aussi tester fast-math avec le LTO et le PGO pour voir ce que donnerait la combinaison de ces deux optimisations.
-\begin{center}
-    \begin{tabular}{ c c c }
-        Optimisation                           & Amélioration & Intervalle de confiance ($2\sigma$) \\
-        Fast-math\footnotemark[1]              & $5.06\%$     & $\pm 0.98\%$                        \\
-        Associative-math seulement             & $4.73\%$     & $\pm 1.51\%$                        \\
-        Fast-math\footnotemark[1] + LTO \& PGO & $11.02\%$    & $\pm 0.98\%$
-    \end{tabular}
-\end{center}
-\footnotetext[1]{sans finite-math-only et unsafe-math-optimizations}
+Les options testées ont donc été associative-math et ses dépendances no-signed-zeros et no-trapping-math ;
+ainsi que fast-math (associative-math avec no-math-errno et reciprocal-math en plus).
+Fast-math a également été testé conjointement avec avec le LTO et le PGO pour voir si les gains sont cumulatifs.
+En effet il se pourrait que les deux optimisations jouent sur le même élément, par exemple le nombre d'accès mémoires, dans quel cas les gains de performances ne se cumuleraient pas.
+\begin{figure}[H]
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimisation               & Amélioration & Intervalle de confiance ($2\sigma$) \\
+            Fast-math                  & $5.06\%$     & $\pm 0.98\%$                        \\
+            Associative-math seulement & $4.73\%$     & $\pm 1.51\%$                        \\
+            Fast-math + LTO \& PGO     & $11.02\%$    & $\pm 0.98\%$
+        \end{tabular}
+    \end{center}
+    \caption{Amélioration de la vitesse d'exécution avec fast-math par rapport à la référence}
+    \label{results_fast-math}
+\end{figure}
 
-On observe que fast-math permet un important gain de performance (environ $5\%$ d'amélioration).
-De plus, il se cumule presque avec celui du PGO ce qui conduit lorsqu'on les utilisent ensembles à une amélioration de plus de $10\%$.
+Fast-math permet un important gain de performance (environ $5\%$ d'amélioration),
+gain qui se cumule en grande partie avec celui du PGO ce qui conduit à une amélioration de plus de $10\%$ lorsqu'ils sont associés.
 
 Ce gain vient principalement de l'option associative-math, les autres options n'ont donc pas beaucoup d'effet.
-Plus précisément, on peut utiliser VTune pour voir le temps que passe le processeur à faire des calculs flottants.
+Pour l'expliquer, on peut utiliser VTune pour voir le temps que passe le processeur à faire des calculs flottants.
 
 \begin{figure}[H]
     \includegraphics[width=0.75\textwidth, center]{reference_vtune.png}
@@ -1093,68 +1216,71 @@ Plus précisément, on peut utiliser VTune pour voir le temps que passe le proce
 \end{figure}
 
 On observe sur les figures \ref{reference_vtune} et \ref{associative-math_vtune} qu'avec associative-math, le processeur réduit d'environ $10\%$ le temps passé dans l'unité de calculs flottants.
+Cependant on voit en comparant les figures \ref{hlt2_vtune_pipe} et \ref{fast-math_vtune_pipe} que proportionnellement, le temps passé à attendre la mémoire ou le pipeline n'est pas significativement différent.
+Cela peut s'expliquer par le fait que le processeur effectue moins d'opérations sur les nombres flottants et donc qu'il a moins besoin d'aller chercher des données en mémoire ou d'attendre le FPU.
+
+\begin{figure}[H]
+    \includegraphics[width=0.8\textwidth, center]{fast-math_vtune_pipe.png}
+    \caption{Résumé de VTune pour le test \emph{Hlt2} (fast-math)}
+    \label{fast-math_vtune_pipe}
+\end{figure}
 
 \subsection{Mesure de l'instabilité}
-Avec le script Python présenté plus haut, on peut récupérer la totalité des compteurs utilisés dans la pile LHCb (un peu plus de 30 000).
+Le script Python présenté plus haut permet de récupérer la totalité des compteurs utilisés dans la pile LHCb (un peu plus de 30 000).
 Ces compteurs sont principalement de deux sortes :
 \begin{itemize}
     \item des entiers, qui comptent par exemple le nombre de particules d'un type détectées.
-    \item un triplet d'un entier et de deux flottants représentants le nombre d'éléments, la somme et la moyenne de leur valeur.
+    \item un triplé d'un entier et de deux flottants représentants le nombre d'éléments, la somme et la moyenne d'une valeur.
           Ce type de compteur peut par exemple être utilisé pour représenter l'énergie des particules.
 \end{itemize}
 Certains de ces compteurs représentent des valeurs directement intéressantes (comme le résultat d'un algorithme) ;
-d'autres des valeurs intermédiaires comme le $\chi^2$ d'un algorithme numérique.
-Ces derniers sont très sensibles et fluctuent donc beaucoup plus,
-cependant ils sont peu intéressants car ce qui compte c'est que le résultat final converge bien à la fin.
+d'autres des valeurs intermédiaires comme la différence ($\chi^2$) d'un algorithme numérique.
+Ces derniers sont très sensibles et fluctuent donc beaucoup plus.
 
-Toutes ces données ont ensuite été chargées dans le logiciel LibreOffice Calc.
-Ainsi pour chaque compteur, on a calculé ses erreurs absolues et relatives avec la référence.
-On les a ensuite triés en fonction de l'erreur relative croissante.
+Toutes ces données ont été chargées dans le logiciel LibreOffice Calc.
+Pour chaque compteur, les erreurs absolues et relatives avec la référence ont été calculées et ont ensuite été triés en fonction de l'erreur relative croissante.
 
 \begin{figure}[H]
     \includegraphics[width=\textwidth, center]{fast-math_difference.png}
-    \caption{Logarithme de l'erreur relative des compteurs entre la référence et la version fast-math}
+    \caption{Logarithme de l'erreur relative des compteurs entre la référence et les versions fast-math et associative-math}
     \label{fast-math_difference}
 \end{figure}
 
-Sur la figure \ref{fast-math_difference} se trouvent en abscisse les compteurs triés.
+Le graphe de la figure \ref{fast-math_difference} représente la distribution de ces erreurs.
+L'abscisse donne le nombre de compteurs en dessous d'une erreur relative donnée.
 En ordonnée est représenté le logarithme en base 10 de l'erreur relative.
-On a considéré que si cette erreur est nulle, son log vaut $-7$ car c'est à peu près la précision des flottants 32 bits utilisés ici.
+Si l'erreur est nulle, la valeur $-7$ est utilisée car c'est à peu près la précision des flottants 32 bits.
 
 Le graphe montre qu'un certain nombre de compteurs ont une différence significative avec la référence.
-On considère qu'une erreur relative plus grande que $10^{-4}$ ou $10^{-3}$ est trop importante pour la physique.
+Une erreur relative plus grande que $10^{-4}$ ou $10^{-3}$ est trop importante pour la physique.
 C'est ici le cas pour plusieurs milliers de compteurs.
 Un ou plusieurs algorithmes sont donc probablement trop instables numériquement et devraient être corrigés.
 
-\begin{figure}[H]
-    \includegraphics[width=\textwidth, center]{associative-math_difference.png}
-    \caption{Logarithme de l'erreur relative des compteurs entre la référence et la version associative-math}
-    \label{associative-math_difference}
-\end{figure}
-
-On obtient le même graphe en comparant la version associative-math avec la référence (Figure \ref{associative-math_difference}).
+Les graphes de la version associative-math et de la version fast-math ont la même courbe.
 Ainsi c'est le simple fait de changer l'ordre des opérations qui a un impact sur les résultats numériques.
 
-Ce travail a permis de contacter les auteurs de certains des algorithmes qui divergent le plus.
+Ce travail a permis de contacter les auteurs des algorithmes qui divergent le plus pour initier une réflexion sur leur stabilité.
 
-\section{Réflexions sur la responsabilité sociétale et environnementale}
-Le CERN est une organisation internationale faisant de la recherche, il n'est pas à but lucratif.
-Parmi ses objectifs explicites se trouve l'idée d'unir les peuples via la recherche au bénéfice de tous.
+\chapter*{Réflexions sur la responsabilité sociétale et environnementale}
+\section*{Enjeux sociétaux}
+Le CERN est une organisation internationale dont le but premier est la recherche, il n'est pas à but lucratif.
 Si les états membres investissent des milliards c'est parce qu'il est probable que dans plusieurs décennies, les découvertes qui y sont faites auront un grand impact sur nos sociétés,
 comme a pu l'être la physique quantique qui a par exemple permis l'informatique ou toutes les technologies utilisant des lasers.
-Le Web, qui a été développé afin de plus facilement partager les papiers scientifiques et un bon exemple de technologie ayant marqué le 21\ieme siècle.
+Le Web, qui a été développé afin de plus facilement partager les articles scientifiques est un bon exemple de technologie ayant marqué le 21\ieme siècle et issue du CERN.
 
-Le CERN collabore au sein de plusieurs projets. On peut citer :
+En plus des enjeux liés à la recherche, le CERN a trois autres missions : l'innovation, l'éducation et le rapprochement des nations.
+Dans cette perspective, il collabore au sein de plusieurs projets. On peut citer :
 \begin{itemize}
     \item UNOSAT, un projet satellitaire soutenu par les Nations Unies qui permet d'obtenir des renseignements pour l'aide humanitaire, dont le CERN fournit l'infrastructure informatique ;
     \item ENLIGHT qui vise le développement de l'hadronthérapie, méthode permettant de faire de la radiothérapie de manière plus localisée ;
-    \item SESAME pour le développement de la recherche nucléaire au Moyen-Orient.
+    \item SESAME pour le développement de la recherche nucléaire au Moyen-Orient et qui fait travailler ensemble des chercheurs israéliens et palestiniens au sein du même projet.
 \end{itemize}
 
+\section*{Enjeux environnementaux}
 Cependant, le CERN utilise un grand nombre d'installations très gourmandes en énergie qui peuvent donc avoir un impact sur l'environnement.
-Le plus gros problème est la consommation électrique du complexe d'accélérateurs qui peut atteindre $200MW$, ce qui représente un tiers de la consommation de Genève.
-Cette électricité provient tout de même principalement de France et est donc en large partie décarbonée.
-Le CERN tente de limiter sa consommation via différents moyens comme avec une utilisation plus importante des supraconducteurs au LHC ou la récupération de chaleur dans le nouveau centre de calculs.
+Le consommation électrique du complexe d'accélérateurs peut atteindre $200MW$, ce qui pour comparaison représente un tiers de la consommation de Genève.
+Cette électricité provient principalement de France et est donc en large partie décarbonée.
+Le CERN tente de limiter sa consommation via différents moyens, notamment avec une utilisation plus importante des supraconducteurs au LHC ou la récupération de chaleur dans le nouveau centre de calculs.
 Les efforts en matière d'économies d'énergie ont permis au CERN d'être certifié ISO 50001.
 
 En optimisant l'exécution des programmes de LHCb, ce stage a participé à une politique de sobriété qui cherche à mieux utiliser les ressources disponibles au lieu d'en utiliser de nouvelles.
@@ -1171,10 +1297,10 @@ Plusieurs résultats ont donc été obtenus :
     \item Certaines des optimisations regroupées sous la dénomination fast-math permettent également des gains importants de l'ordre de $5\%$.
 
           Les flags \verb'-fno-trapping-math -fno-signed-zeros -fassociative-math' seraient intéressant à activer,
-          \begin{enumerate}
+          \begin{itemize}
               \item dans un premier temps afin de pouvoir suivre l'instabilité numérique,
               \item dans un second temps pour utiliser fast-math en production, en complément du PGO pour obtenir le gain de performances.
-          \end{enumerate}
+          \end{itemize}
 \end{itemize}
 
 Ces optimisations indépendantes permettraient d'atteindre en cumulé plus de $10\%$ d'accélération pour les machines de productions.
