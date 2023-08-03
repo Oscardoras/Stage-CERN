@@ -564,17 +564,17 @@ Ce sera le quatrième sujet d'étude.
 
 \subsection{Compilation sur ARM}\label{section:arm}
 Il existe plusieurs architectures de processeurs.
-La plus répandue pour les ordinateurs personnels et les serveurs est l'architecture \verb'x86_64', développée par Intel.
-\verb'arm' est très utilisée pour l'embarqué (smartphones et appareils connectés), mais certains ordinateurs en sont également équipés.
+La plus répandue pour les ordinateurs personnels et les serveurs est l'architecture \verb'x86_64', supportée par Intel et AMD.
+Une autre architecture, \verb'arm' est très utilisée pour l'embarqué (smartphones et appareils connectés), mais certains serveurs en sont également équipés, notamment les supercalculateurs.
 
-De plus en plus de centres de calculs possèdent des machines tournant sous \verb'arm'.
-Faire fonctionner la pile LHCb sur ces machines deviendra donc nécessaire.
+De plus en plus de centres de calculs possèdent des machines tournant sous \verb'arm' car cette architecture permet des gains d'énergies.
+Faire fonctionner la pile LHCb sur ces machines deviendra donc rapidement nécessaire pour pouvoir utiliser ces centres.
 
-Les architectures sont très différentes et donc un programme compilé pour l'une ne peut pas fonctionner pour l'autre.
-En revanche, un même code source écrit dans un langage comme le C ou le C++ peut être compilé pour chaque platforme et aura le même comportement sur chacune d'elles.
+Les architectures \verb'x86_64' et \verb'arm' sont très différentes et donc un programme compilé pour l'une ne peut pas fonctionner pour l'autre.
+En revanche, un même code source écrit dans un langage comme le C ou le C++ peut être compilé pour chaque platforme et aura quasiment le même comportement sur chacune d'elles.
 Cependant cela n'est valable que si le code respecte scrupuleusement la norme du langage.
-Si ce n'est pas le cas, le programme a un comportement indéterminé, c'est-à-dire que son comportement peut varier selon le compilateur, l'architecture du processeur ou l'état de la machine pendant l'exécution.
-Par exemple en C, le contenu d'une variable non initialisé est indéterminé ; donc sa valeur peut être nulle tout comme contenir des valeurs aléatoires.
+Si ce n'est pas le cas, ont dit que le programme a un comportement indéterminé, c'est-à-dire que son comportement peut varier selon le compilateur, l'architecture du processeur ou l'état de la machine pendant l'exécution.
+Par exemple en C, le contenu d'une variable non initialisée est indéterminé ; donc sa valeur peut être nulle tout comme elle peut contenir des valeurs aléatoires.
 
 Le code de la pile LHCb étant écrit en C++, la majeure partie du code est donc compatible.
 Il y a cependant certains fichiers qui comportent du code non standard, soit par erreur, soit par nécessité (par exemple si du code utilise une fonctionnalité unique du processeur).
@@ -1010,6 +1010,7 @@ L'outil a néanmoins permis de trouver et de corriger des erreurs existantes.
 \section{Compilation sur ARM}
 La pile LHCb avait déjà été adaptée pour \verb'arm' il y a quelques années.
 La plupart des problèmes avaient donc été résolus.
+Cependant elle n'a plus été compilée pour cette platforme depuis et le port a donc pu être cassé.
 L'enjeu est donc de corriger les nouveaux éventuels problèmes qui sont apparus depuis.
 
 \subsection{Platforme de travail}
@@ -1019,14 +1020,17 @@ Le compilateur \verb'gcc11' a de nouveau été utilisé, celui-ci fonctionnant �
 
 \subsection{MDF}
 Dans un premier temps, les programmes Gaudi, Detector et LHCb ont été compilés avec succès.
-Cependant à l'exécution, un problème critique est apparu lors de la lecture des fichier \verb'.mdf' (format spécifique à LHCb) qui permettent de stocker les données issues du détecteur.
+Cependant à l'exécution, un problème critique est apparu lors de la lecture des fichier \verb'.mdf', un format de fichier spécifique à LHCb.
 
 Le code responsable du parsing de ces fichiers a un fonctionnement particulier.
 Il déclare des structures dont la forme correspond au format MDF \cite{edms784588} et s'assure qu'il n'y ait pas de padding (espace mémoire ajouté par le compilateur entre les différents attributs d'une structure afin de les aligner).
 Ainsi, lors du parsing d'un fichier, il fait un simple \verb'reinterpret_cast' du pointeur vers les données binaires en un pointeur vers l'une de ces structures.
-Bien que fonctionnant, ce code n'est pas standard car si la structure compilée n'a pas exactement la même forme binaire que le format de fichier, alors les données seront mal parsées.
+Bien que fonctionnant, ce code n'est pas standard car si la structure compilée n'a pas exactement la même forme binaire que le format de fichier, les données seront mal interprétées.
 
-En l’occurrence, le problème venait de l'une des fonctions de checksum :
+Un \verb'hexdump' des données sortie de cet algorithme a été comparé avec un \verb'hexdump' de la référence.
+Ceci a permis de remarquer que la seule différence se trouvait au niveau du \verb'checksum'.
+
+Plusieurs algorithmes de \verb'checksum' sont en effet implémentés et il y avait un problème dans l'un d'eux :
 
 \begin{lstlisting}[language=c++,numbers=left]
 unsigned int hash32Checksum( const void* ptr, size_t len ) {
@@ -1053,22 +1057,23 @@ La solution a simplement été d'explicitement ajouter \verb'unsigned' devant ch
 signed const char*  k    = (const signed char*)ptr;
 \end{lstlisting}
 
-Après cette correction, tous les problèmes restant dans le programme LHCb n'étaient que des problèmes mineurs.
+Après cette correction, tous les problèmes restant dans le programme LHCb n'étaient que des problèmes mineurs, comme des tests qui vérifiaient la prise en charge de fonctionnalités non disponibles sur \verb'arm'.
 
 \subsection{Catboost}
 La compilation du programme Rec a ensuite été tentée.
-Le seul problème se situe dans un algorithme nommé \verb'MuonID' qui dépend de \verb'catboost' une bibliothèque externe.
-Celle-ci n'est en effet pas disponible sur \verb'arm' dans les releases de LHCb.
+Le seul problème se situe dans un algorithme nommé \verb'MuonID' qui dépend de \verb'catboost', une bibliothèque externe.
+Celle-ci n'est en effet pas disponible sur \verb'arm' pour la release utilisée par LHCb, qui s'avère être relativement ancienne.
 
 Les dernières versions du code de \verb'catboost' peuvent être compilées pour \verb'arm' mais ce n'est pas le cas des plus anciennes.
-La solution serait donc de passer à une version plus récente.
+Une solution serait donc de passer à une version plus récente.
 
-Cependant le problème est en partie politique.
-Catboost est développé par des ingénieurs de l'entreprise russe \emph{Yandex} qui faisait partie de la collaboration LHCb mais qui en a été en partie exclue depuis l'invasion de l'Ukraine par la Russie.
-Le support de cette bibliothèque n'est donc plus garantie pour LHCb ; et comme elle n'est utilisée que dans un seul algorithme, la décision de trouver une alternative ou non doit être prise.
+Au problème technique s'ajoute en outre un problème institutionnel.
+Catboost est en effet développé par des ingénieurs de l'entreprise russe \emph{Yandex} qui faisait partie de la collaboration LHCb mais qui en a été en partie exclue depuis l'invasion de l'Ukraine par la Russie.
+Le support de cette bibliothèque n'est donc plus garantie pour LHCb.
+Or comme \verb'MuonID' est le seul algorithme qui l'utilise, la décision de trouver une alternative est donc posée.
 
 En attendant, il a été possible de compiler Rec sans \verb'MuonID'.
-Un grand nombre de tests dépendent de cet algorithme pour fonctionner et n'ont donc pas pu être testés.
+Malheuresement, un grand nombre de tests dépendent de cet algorithme pour fonctionner, dont le test Hlt2 utilisé pour les mesures de performances dans le chapitre 3.
 En revanche le test Hlt1 qui n'en dépend pas a fonctionné normalement, ce qui montre que la pile LHCb peut au moins en partie fonctionner sur \verb'arm'.
 
 
@@ -1112,13 +1117,21 @@ Le profile-guided optimization a permis pendant les phases de recherche d'obteni
 Cela n'a pas été le cas avec AutoFDO.
 
 \subsection{Code final}
-Le code finalement ajouté au CMake global du projet est relativement simple.
+Le code ajouté au CMake global du projet est finalement relativement simple.
+Il utilise deux variables :
+\begin{itemize}
+    \item \verb'PGO' définit le mode de compilation :
+          \begin{itemize}
+              \item standard si la variable n'est pas définie ;
+              \item génération des profils si elle vaut \verb'GENERATE' ;
+              \item utilisation des profils si elle vaut \verb'USE'.
+          \end{itemize}
+    \item \verb'PGO_PATH' est optionnelle et permet de spécifier le dossier où créer et utiliser les profils qui sont par défaut dans les dossiers de build si la variable n'est pas définie.
+\end{itemize}
 
-La variable \verb'PGO_PATH' peut spécifier le dossier où créer et utiliser les profils, par défaut dans les dossiers de build.
-
-D'abord pour créer la version du programme avec les options d'instrumentation, il suffit de passer à CMake la variable \verb'PGO=GENERATE' grâce à ce code :
+Le mode génération des profils est pris en compte par le code suivant :
 \begin{lstlisting}[language=bash,numbers=left]
-if("${PGO}" MATCHES "GENERATE") # Si la variable PGO contient "GENERATE"
+if("${PGO}" MATCHES "GENERATE")
 	message("PGO generate")
         # Ajout du flag -fprofile-generate
 	if(DEFINED PGO_PATH)
@@ -1129,9 +1142,9 @@ if("${PGO}" MATCHES "GENERATE") # Si la variable PGO contient "GENERATE"
 endif()
 \end{lstlisting}
 
-Ensuite un code similaire permet d'activer le LTO et d'utiliser les profils précédemment créé pour le PGO via \verb'PGO=USE' :
+De même le mode utilisation des profils est géré par le code :
 \begin{lstlisting}[language=bash,numbers=left]
-if("${PGO}" MATCHES "USE") # Si la variable PGO contient "USE"
+if("${PGO}" MATCHES "USE")
 	message("PGO use")
         # Ajout des flags -fprofile-use et -fprofile-correction
 	if(DEFINED PGO_PATH)
@@ -1145,8 +1158,9 @@ if("${PGO}" MATCHES "USE") # Si la variable PGO contient "USE"
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 \end{lstlisting}
+À noter ici les lignes 10 à 12 qui permettent de vérifier le support du LTO et de l'activer le cas échéant.
 
-\subsection{Amélioration des performances}
+\subsection{Performances}
 Ainsi des \emph{throughput tests} ont été réalisés pour le LTO seul et pour le PGO + LTO.
 Une version combinant la version statique avec le PGO et le LTO a également été testée :
 \begin{figure}[H]
@@ -1162,7 +1176,7 @@ Une version combinant la version statique avec le PGO et le LTO a également ét
     \label{results_pgo}
 \end{figure}
 
-Le profile-guided optimization combiné au link-time optimization apporte un net gain de performance (environ $7\%$ d'amélioration).
+Le profile-guided optimization combiné au link-time optimization apporte un net gain de performance (environ $7\%$).
 Ceci peut représenter plusieurs centaines de machines à l'échelle des centres de calculs de LHCb.
 
 \subsection{Mise en production}
@@ -1177,19 +1191,20 @@ Cette évolution est déjà en cours pour d'autres raisons, mais prendra du temp
 Fast-math regroupe de nombreuses options.
 Après quelques tests, il a été décidé de ne pas utiliser finite-math-only car il supprime la possibilité d'utiliser des flottants non-finis, or le code LHCb en dépend à quelques endroits.
 De même unsafe-math-optimization a des effets de bords subtiles sur les bibliothèques chargées dynamiquement et n'a donc pas été considéré.
-Dans la suite, le terme \emph{fast-math} désigne toutes les options sauf les deux précédemment citées.
+Dans la suite, le terme \emph{fast-math} désigne donc toutes les options fast-math à l'exception des deux précédemment citées.
 
 \subsection{Amélioration des performances}
 Les options testées ont donc été associative-math et ses dépendances no-signed-zeros et no-trapping-math ;
 ainsi que fast-math (associative-math avec no-math-errno et reciprocal-math en plus).
 Fast-math a également été testé conjointement avec avec le LTO et le PGO pour voir si les gains sont cumulatifs.
-En effet il se pourrait que les deux optimisations jouent sur le même élément, par exemple le nombre d'accès mémoires, dans quel cas les gains de performances ne se cumuleraient pas.
+En effet il se pourrait que les deux optimisations jouent sur le même élément, par exemple le nombre d'accès mémoires, au quel cas les gains de performances pourraient ne pas se cumuler.
 \begin{figure}[H]
     \begin{center}
         \begin{tabular}{ c c c }
             Optimisation               & Amélioration & Intervalle de confiance ($2\sigma$) \\
             Fast-math                  & $5.06\%$     & $\pm 0.98\%$                        \\
             Associative-math seulement & $4.73\%$     & $\pm 1.51\%$                        \\
+            (LTO \& PGO)               & $6.74\%$     & $\pm 1.44\%$                        \\
             Fast-math + LTO \& PGO     & $11.02\%$    & $\pm 0.98\%$
         \end{tabular}
     \end{center}
@@ -1216,8 +1231,8 @@ Pour l'expliquer, on peut utiliser VTune pour voir le temps que passe le process
 \end{figure}
 
 On observe sur les figures \ref{reference_vtune} et \ref{associative-math_vtune} qu'avec associative-math, le processeur réduit d'environ $10\%$ le temps passé dans l'unité de calculs flottants.
-Cependant on voit en comparant les figures \ref{hlt2_vtune_pipe} et \ref{fast-math_vtune_pipe} que proportionnellement, le temps passé à attendre la mémoire ou le pipeline n'est pas significativement différent.
-Cela peut s'expliquer par le fait que le processeur effectue moins d'opérations sur les nombres flottants et donc qu'il a moins besoin d'aller chercher des données en mémoire ou d'attendre le FPU.
+De plus, on voit en comparant les figures \ref{hlt2_vtune_pipe} et \ref{fast-math_vtune_pipe} que proportionnellement, le temps passé à attendre le pipeline a diminué mais que celui à attendre la mémoire a augmenté.
+Cela peut s'expliquer par le fait qu'en faisant moins de calculs, le processeur est mieux utilisé et que donc la limite de performances se déplace vers la mémoire.
 
 \begin{figure}[H]
     \includegraphics[width=0.8\textwidth, center]{fast-math_vtune_pipe.png}
@@ -1256,8 +1271,8 @@ Une erreur relative plus grande que $10^{-4}$ ou $10^{-3}$ est trop importante p
 C'est ici le cas pour plusieurs milliers de compteurs.
 Un ou plusieurs algorithmes sont donc probablement trop instables numériquement et devraient être corrigés.
 
-Les graphes de la version associative-math et de la version fast-math ont la même courbe.
-Ainsi c'est le simple fait de changer l'ordre des opérations qui a un impact sur les résultats numériques.
+Les graphes de la version associative-math et de la version fast-math ont des courbes quasiment identiques.
+Ainsi c'est bien le changement d'ordre des opérations mathématiques qui a un impact sur les résultats numériques.
 
 Ce travail a permis de contacter les auteurs des algorithmes qui divergent le plus pour initier une réflexion sur leur stabilité.
 
@@ -1266,20 +1281,20 @@ Ce travail a permis de contacter les auteurs des algorithmes qui divergent le pl
 Le CERN est une organisation internationale dont le but premier est la recherche, il n'est pas à but lucratif.
 Si les états membres investissent des milliards c'est parce qu'il est probable que dans plusieurs décennies, les découvertes qui y sont faites auront un grand impact sur nos sociétés,
 comme a pu l'être la physique quantique qui a par exemple permis l'informatique ou toutes les technologies utilisant des lasers.
-Le Web, qui a été développé afin de plus facilement partager les articles scientifiques est un bon exemple de technologie ayant marqué le 21\ieme siècle et issue du CERN.
+Le Web, qui a été développé afin de plus facilement partager les articles scientifiques est également un bon exemple de technologie ayant marqué le 21\ieme siècle et issue du CERN.
 
 En plus des enjeux liés à la recherche, le CERN a trois autres missions : l'innovation, l'éducation et le rapprochement des nations.
 Dans cette perspective, il collabore au sein de plusieurs projets. On peut citer :
 \begin{itemize}
-    \item UNOSAT, un projet satellitaire soutenu par les Nations Unies qui permet d'obtenir des renseignements pour l'aide humanitaire, dont le CERN fournit l'infrastructure informatique ;
-    \item ENLIGHT qui vise le développement de l'hadronthérapie, méthode permettant de faire de la radiothérapie de manière plus localisée ;
-    \item SESAME pour le développement de la recherche nucléaire au Moyen-Orient et qui fait travailler ensemble des chercheurs israéliens et palestiniens au sein du même projet.
+    \item \href{https://home.cern/tags/unosat}{UNOSAT}, un projet satellitaire soutenu par les Nations Unies qui permet d'obtenir des renseignements pour l'aide humanitaire. Le CERN fournit toute l'infrastructure informatique du projet ;
+    \item \href{https://enlight.web.cern.ch/}{ENLIGHT} qui vise le développement de l'hadronthérapie, méthode permettant de faire de la radiothérapie de manière plus localisée ;
+    \item \href{https://home.cern/tags/sesame}{SESAME} pour le développement de la recherche en physique des particules au Moyen-Orient et qui fait travailler ensemble des chercheurs israéliens et palestiniens au sein du même projet.
 \end{itemize}
 
 \section*{Enjeux environnementaux}
-Cependant, le CERN utilise un grand nombre d'installations très gourmandes en énergie qui peuvent donc avoir un impact sur l'environnement.
-Le consommation électrique du complexe d'accélérateurs peut atteindre $200MW$, ce qui pour comparaison représente un tiers de la consommation de Genève.
-Cette électricité provient principalement de France et est donc en large partie décarbonée.
+Le CERN utilise un grand nombre d'installations très gourmandes en énergie qui peuvent donc avoir un impact sur l'environnement.
+La consommation électrique du complexe d'accélérateurs peut atteindre $200MW$, ce qui pour comparaison représente un tiers de la consommation de la ville de Genève.
+Cette électricité provient principalement de France et est donc en grande partie décarbonée.
 Le CERN tente de limiter sa consommation via différents moyens, notamment avec une utilisation plus importante des supraconducteurs au LHC ou la récupération de chaleur dans le nouveau centre de calculs.
 Les efforts en matière d'économies d'énergie ont permis au CERN d'être certifié ISO 50001.
 
@@ -1287,7 +1302,7 @@ En optimisant l'exécution des programmes de LHCb, ce stage a participé à une 
 
 
 \chapter*{Conclusion}
-L'objectif de ce stage était de proposer et d'implémenter des solutions pour accélérer les programmes d'analyses de LHCb via des optimisations à la compilation.
+L'objectif de ce stage était de proposer et d'implémenter des solutions pour accélérer les programmes de reconstruction et d'analyse de LHCb via des optimisations à la compilation.
 Plusieurs résultats ont donc été obtenus :
 \begin{itemize}
     \item Utiliser des bibliothèques statiques au lieu de bibliothèques dynamiques ne semble pas apporter de gains substantiels et soulève plusieurs problèmes.
@@ -1299,12 +1314,13 @@ Plusieurs résultats ont donc été obtenus :
           Les flags \verb'-fno-trapping-math -fno-signed-zeros -fassociative-math' seraient intéressant à activer,
           \begin{itemize}
               \item dans un premier temps afin de pouvoir suivre l'instabilité numérique,
-              \item dans un second temps pour utiliser fast-math en production, en complément du PGO pour obtenir le gain de performances.
+              \item dans un second temps pour utiliser fast-math en production, en complément du PGO pour obtenir le gain de performance maximal.
           \end{itemize}
 \end{itemize}
 
 Ces optimisations indépendantes permettraient d'atteindre en cumulé plus de $10\%$ d'accélération pour les machines de productions.
 
+Enfin, ce stage a permis d'apporter des corrections à la base de code dont certaines permettent désormais de faire tourner la pile LHCb sur architecture \verb'arm'.
 
 \printbibliography
 \pagenumbering{gobble}
