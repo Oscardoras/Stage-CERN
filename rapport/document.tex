@@ -144,7 +144,17 @@ Enfin je remercie Gloria Corti et Marco Cattaneo qui m'ont fait visité LHCb et 
 
 \begin{otherlanguage}{english}
     \begin{abstract}
+        This internship aims to study the software infrastructure that processes data from the CERN LHCb detector and to implement solutions to optimize its performance through improved compilation.
+        The programs are mainly coded in C++ and compiled using CMake.
 
+        Several methods were employed.
+        The first involved merging the hundreds of dynamic libraries into a single static executable.
+        The use of profile-guided optimization and link-time optimization was subsequently introduced.
+        Finally, the \emph{fast-math} options were tested.
+
+        In total, an approximately $11\%$ improvement in execution speed was achieved through link-time optimization, profile-guided optimization, and fast-math on the detector data reconstruction code.
+
+        The remaining time was dedicated to setting up the include-what-you-use tool and compilation on ARM architectures.
         \vfill
 
         Keywords : LHCb, Optimization, Advanced compilation
