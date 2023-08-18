@@ -131,7 +131,7 @@ Enfin je remercie Gloria Corti et Marco Cattaneo qui m'ont fait visité LHCb et 
     Plusieurs méthodes ont été utilisées.
     La première a consisté à fusionner les centaines de bibliothèques dynamiques en un seul exécutable statique.
     L'utilisation de profile-guided optimization et de link-time optimization a ensuite été mise en place.
-    Enfin les options \emph{fast-math} ont été testées.
+    Enfin les options fast-math ont été testées.
 
     Au total, une amélioration de la vitesse d'exécution d'environ $11\%$ a été obtenue avec le link-time optimization, le profile-guided optimization et fast-math sur le code de la reconstruction des données du détecteur.
 
@@ -144,13 +144,14 @@ Enfin je remercie Gloria Corti et Marco Cattaneo qui m'ont fait visité LHCb et 
 
 \begin{otherlanguage}{english}
     \begin{abstract}
+
         This internship aims to study the software infrastructure that processes data from the CERN LHCb detector and to implement solutions to optimize its performance through improved compilation.
         The programs are mainly coded in C++ and compiled using CMake.
 
         Several methods were employed.
         The first involved merging the hundreds of dynamic libraries into a single static executable.
         The use of profile-guided optimization and link-time optimization was subsequently introduced.
-        Finally, the \emph{fast-math} options were tested.
+        Finally, the fast-math options were tested.
 
         In total, an approximately $11\%$ improvement in execution speed was achieved through link-time optimization, profile-guided optimization, and fast-math on the detector data reconstruction code.
 
@@ -587,7 +588,7 @@ Si ce n'est pas le cas, ont dit que le programme a un comportement indéterminé
 Par exemple en C, le contenu d'une variable non initialisée est indéterminé ; donc sa valeur peut être nulle tout comme elle peut contenir des valeurs aléatoires.
 
 Le code de la pile LHCb étant écrit en C++, la majeure partie du code est donc compatible.
-Il y a cependant certains fichiers qui comportent du code non standard, soit par erreur, soit par nécessité (par exemple si du code utilise une fonctionnalité unique du processeur).
+Il y a cependant certains fichiers qui comportent du code non standard, soit par erreur, soit par nécessité (par exemple si du code utilise une fonctionnalité exclusive du processeur).
 
 \bigskip
 Compiler la pile LHCb pour \verb'arm' sera le cinquième et dernier sujet du stage.
