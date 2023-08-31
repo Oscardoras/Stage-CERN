@@ -10,7 +10,6 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage[toc,page]{appendix}
-\usepackage[backend=biber,style=alphabetic]{biblatex}
 
 
 \graphicspath{ {../images/} }
@@ -188,7 +187,7 @@
     \frametitle{Types de bibliothèques}
 
     \begin{itemize}
-        \item STATIC: archive de ficheirs objets qui sont fusionés à l'exécutable au mment du link.
+        \item STATIC: archive de fichiers objets qui sont fusionnés à l'exécutable au moment du link.
         \item SHARED: fichier \verb'.so' (Linux) qui est automatiquement linké à l'exécutable au démarrage du programme.
               Permet à plusieurs exécutables d'être linké à une même bibliothèque installée sur le système.
         \item MODULE: pareil qu'une bibliothèque partagée à la différence qu'un module est chargé sur demande via la fonction \verb'dlopen'.
@@ -216,7 +215,7 @@
 \begin{frame}[fragile]
     \frametitle{Static modules}
 
-    Il faut en plus linker ave :
+    Il faut en plus linker avec :
     \begin{itemize}
         \item \verb'-Wl,--whole-archive'
               \begin{itemize}
@@ -276,7 +275,7 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
     Le compilateur utilise des heuristiques pour optimiser certains éléments :
     \begin{itemize}
         \item Inlining
-        \item Ordonancement des blocs
+        \item Ordonnancement des blocs
         \item Allocation des registres
         \item Spéculation sur les appels virtuels
         \item Séparation du code mort
@@ -286,7 +285,7 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
 \end{frame}
 
 \begin{frame}
-    Une meilleure manière pour le compilatreur serait de connaitre le comportement à l'exécution.
+    Une meilleure manière pour le compilateur serait de connaître le comportement à l'exécution.
     Principe du PGO :
     \begin{itemize}
         \item Compiler le programme avec instrumentation.
@@ -510,7 +509,7 @@ else
     \frametitle{Conclusion}
 
     \begin{itemize}
-        \item Utiliser des bilbiothèques et modules statiques ne semble pas améliorer les performances et mène à des bugs.
+        \item Utiliser des bibliothèques et modules statiques ne semble pas améliorer les performances et mène à des bugs.
         \item Utiliser LTO \& PGO rend le programme plus rapide.
         \item Fast-math améliore les performances et permet de détecter des instabilités numériques.
     \end{itemize}
