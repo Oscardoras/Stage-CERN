@@ -14,7 +14,6 @@
 
 
 \graphicspath{ {../images/} }
-\input{embed_video.tex}
 \usetheme{Copenhagen}
 \setbeamertemplate{page number in head/foot}[totalframenumber]
 \setcounter{tocdepth}{2}
@@ -57,8 +56,108 @@
 \section*{Introduction}
 
 \begin{frame}
+    \includegraphics[width=\textwidth]{video/CERN.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/Geneva.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/map.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/linac.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/psb.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/ps.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/sps.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/lhc.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/detectors.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/collisions.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/trigger1.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/trigger2.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/data_center.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/processing.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/grid.png}
+\end{frame}
+
+\begin{frame}
+    \includegraphics[width=\textwidth]{video/graphs.png}
+\end{frame}
+
+\begin{frame}
+    \frametitle{LHCb}
+
     \centering
-    \embedvideo{\includegraphics[width=\textwidth,height=0.95\textheight]{map.jpg}}{../images/video.mp4}
+    \includegraphics[width=0.90\textwidth]{LHCb.jpg}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Computing group}
+
+    \begin{itemize}
+        \item Gère l'infrastructure logicielle de LHCb ;
+        \item Maintient les programmes de traitement des données issues du détecteur.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Pile LHCb}
+
+    \begin{itemize}
+        \item Root
+        \item Gaudi
+        \item LHCb
+        \item Lbcom
+        \item Rec
+        \item Allen
+        \item Moore
+        \item ...
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Objectif du stage}
+
+    \begin{itemize}
+        \item Le traitement a un coût important ;
+        \item Besoin d'accélérer / optimiser les calculs ;
+        \item Plusieurs méthodes envisagées.
+    \end{itemize}
 \end{frame}
 
 
@@ -71,6 +170,16 @@
 
 \begin{frame}
     \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Explications}
+
+    \begin{itemize}
+        \item Programmes découpés en morceaux ;
+        \item Facilité de développement \& raisons historiques ;
+        \item Plusieurs centaines.
+    \end{itemize}
 \end{frame}
 
 \subsection{Types de bibliothèques}
@@ -142,6 +251,17 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
     \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+    \frametitle{Gain de performance}
+
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimisation & Amélioration & Intervalle de confiance ($2\sigma$) \\
+            Static       & $0.87\%$     & $\pm 0.60\%$
+        \end{tabular}
+    \end{center}
+\end{frame}
+
 \section{Profile-guided optimization}
 
 \begin{frame}
@@ -202,6 +322,19 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
     \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]
+    \frametitle{Gain de performance}
+
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimisation      & Amélioration & Intervalle de confiance ($2\sigma$) \\
+            LTO               & $0.17\%$     & $\pm 1.12\%$                        \\
+            LTO \& PGO        & $6.74\%$     & $\pm 1.44\%$                        \\
+            Static LTO \& PGO & $6.88\%$     & $\pm 0.83\%$
+        \end{tabular}
+    \end{center}
+\end{frame}
+
 \section{Fast-math}
 
 \begin{frame}
@@ -255,6 +388,21 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
 \subsection{Exactitude de certains calculs}
 
 \begin{frame}[fragile]
+    \frametitle{Égalité entre flottants}
+
+    \begin{itemize}
+        \item Ne jamais tester l'égalité de deux flottants.
+        \item Options GCC \verb'-Wfloat-equal'.
+              Ex. dans LHCb:
+              \begin{itemize}
+                  \item \verb'0 == ip'
+                  \item \verb'0.5 == ip'
+                  \item \verb'lhs.m_energy == rhs.m_energy'
+              \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
     \begin{lstlisting}[language=c++]
 if (f(x) != 0.)
     return 5./f(x);
@@ -278,7 +426,6 @@ else
     \end{lstlisting}
 
     \begin{itemize}
-        \item \verb'f(x)' peut toujours être calculé deux fois.
         \item Si \verb'f(x)' est proche de $0$ alors \verb'5./y' peut valoir \verb'+Inf'.
     \end{itemize}
 \end{frame}
@@ -297,16 +444,12 @@ else
 
 \subsection{Fast-math}
 
-\begin{frame}
-    \tableofcontents[currentsection]
-\end{frame}
-
 \begin{frame}[fragile]
     \frametitle{Principe}
 
     \begin{itemize}
         \item Ensemble d'options.
-        \item OPtimisations mathématiquement valides mais ne respectant pas le standard :
+        \item Optimisations mathématiquement valides mais ne respectant pas le standard :
               \begin{itemize}
                   \item $a+b-a = b$.
                   \item Avec $a = 10^6$ et $b = 10^{-6}$,
@@ -319,7 +462,7 @@ else
     \url{https://godbolt.org/z/jqz8P8vjj}
 \end{frame}
 
-\subsubsection{Exception handling}
+\subsubsection{Gestion des exceptions}
 
 \begin{frame}[fragile]
     \frametitle{Options}
@@ -336,6 +479,29 @@ else
     \end{itemize}
 \end{frame}
 
+\subsubsection{Résultats}
+
+\begin{frame}[fragile]
+    \frametitle{Gain de performance}
+
+    \begin{center}
+        \begin{tabular}{ c c c }
+            Optimisation                    & Amélioration & Intervalle de confiance ($2\sigma$) \\
+            Fast-math\footnotemark[1]       & $5.06\%$     & $\pm 0.98\%$                        \\
+            Associative-math                & $4.73\%$     & $\pm 1.51\%$                        \\
+            (PGO)                           & $6.74\%$     & $\pm 1.44\%$                        \\
+            Fast-math\footnotemark[1] + PGO & $11.02\%$    & $\pm 0.98\%$
+        \end{tabular}
+    \end{center}
+
+    \footnotetext[1]{sans finite-math-only et unsafe-math-optimizations\newline}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Erreur relative des compteurs}
+
+    \includegraphics[width=\textwidth, center]{fast-math_difference.png}
+\end{frame}
 
 \part{Conclusion}
 \section*{Conclusion}
@@ -343,24 +509,27 @@ else
 \begin{frame}[fragile]
     \frametitle{Conclusion}
 
-    Test: \verb'hlt2_pp_thor' ($6 \times 1000$ évènements)
-    \begin{center}
-        \begin{tabular}{ c c c }
-            Optimisation                           & Amélioration & Intervalle de confiance ($2\sigma$) \\
-            LTO                                    & $0.17\%$     & $\pm 1.12\%$                        \\
-            LTO \& PGO                             & $6.74\%$     & $\pm 1.44\%$                        \\
-            Static LTO                             & $0.87\%$     & $\pm 0.60\%$                        \\
-            Static LTO \& PGO                      & $6.88\%$     & $\pm 0.83\%$                        \\
-            Fast-math\footnotemark[1]              & $5.06\%$     & $\pm 0.98\%$                        \\
-            Associative-math only                  & $4.73\%$     & $\pm 1.51\%$                        \\
-            Fast-math\footnotemark[1] + LTO \& PGO & $11.02\%$    & $\pm 0.98\%$
-        \end{tabular}
-    \end{center}
+    \begin{itemize}
+        \item Utiliser des bilbiothèques et modules statiques ne semble pas améliorer les performances et mène à des bugs.
+        \item Utiliser LTO \& PGO rend le programme plus rapide.
+        \item Fast-math améliore les performances et permet de détecter des instabilités numériques.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Apports du stage}
 
     \begin{itemize}
-        \item Utiliser LTO \& PGO rend le programme plus rapide.
-        \item Utiliser des bilbiothèques et modules statiques ne semble pas améliorer les performances et mène à des bugs.
+        \item Travail au sein d'un laboratoire de recherche ;
+        \item Appris beaucoup de choses, notamment sur le fonctionnement bas niveau de Linux et du C++ ;
+        \item Pratique de l'anglais.
     \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \begin{Huge}
+        \centerline{Merci}
+    \end{Huge}
 \end{frame}
 
 
