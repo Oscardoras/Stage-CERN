@@ -63,10 +63,6 @@
 \end{frame}
 
 \begin{frame}
-    \includegraphics[width=\textwidth]{video/lhc.png}
-\end{frame}
-
-\begin{frame}
     \includegraphics[width=\textwidth]{video/detectors.png}
 \end{frame}
 
@@ -107,25 +103,21 @@
 \begin{frame}
     \frametitle{Pile LHCb}
 
+    Plusieurs couches logicielles :
     \begin{itemize}
-        \item Root
-        \item Gaudi
-        \item LHCb
-        \item Lbcom
-        \item Rec
-        \item Allen
-        \item Moore
-        \item ...
+        \item Base commune partagée avec d'autres expériences (Root, Gaudi).
+        \item Programmes spécifiques à LHCb (Detector, LHCb).
+        \item Reconstruction (Rec), simulation (Gauss)...
     \end{itemize}
 \end{frame}
 
 \begin{frame}
-    \frametitle{Pile LHCb}
+    \frametitle{LHCb en chiffres}
 
     \begin{itemize}
-        \item Centaines de contributeurs ;
-        \item Millions de lignes de codes
-        \item dont certaines ont plus de 20 ans.
+        \item 1400 collaborateurs, 80 instituts, 19 pays.
+        \item 10 millions de lignes de codes.
+        \item Dont certaines ont plus de 20 ans.
     \end{itemize}
 \end{frame}
 
@@ -133,8 +125,8 @@
     \frametitle{Objectif du stage}
 
     \begin{itemize}
-        \item Le traitement a un coût important ;
-        \item Besoin d'accélérer / optimiser les calculs ;
+        \item Le traitement a un coût important (milliers de machines).
+        \item Besoin d'accélérer / optimiser les calculs.
         \item Plusieurs méthodes étudiées.
     \end{itemize}
 \end{frame}
@@ -155,9 +147,14 @@
     \frametitle{Structure du software}
 
     \begin{itemize}
-        \item Programmes découpés en morceaux ;
-        \item Facilité de développement \& raisons historiques ;
+        \item Programmes découpés en morceaux :
+        \begin{itemize}
+            \item par sous parties du détecteur,
+            \item par algorithmes...
+        \end{itemize}
+        \item Facilité de développement \& raisons historiques.
         \item Plusieurs centaines de bibliothèques.
+        \item Chargées à runtime.
     \end{itemize}
 \end{frame}
 
@@ -169,23 +166,23 @@
     \begin{itemize}
         \item STATIC: archive de fichiers objets qui sont fusionnés à l'exécutable au moment du link.
         \item SHARED: fichier \verb'.so' (Linux) qui est automatiquement linké à l'exécutable au démarrage du programme.
-              Permet à plusieurs exécutables d'être linké à une même bibliothèque installée sur le système.
-        \item MODULE: pareil qu'une bibliothèque partagée à la différence qu'un module est chargé sur demande via la fonction \verb'dlopen'.
+              Permet à plusieurs exécutables d'être linkés à une même bibliothèque installée sur le système.
+        \item MODULE: similaire à une bibliothèque partagée à la différence qu'un module est chargé sur demande via la fonction \verb'dlopen'.
     \end{itemize}
 \end{frame}
 
 \subsection{Bibliothèques statiques}
 
 \begin{frame}[fragile]
-    \frametitle{Bibliothèques statiques dans Gaudi}
+    \frametitle{Utilisation de bibliothèques statiques dans Gaudi}
 
     \begin{itemize}
         \item Gaudi utilise CMake pour compiler.
-        \item Nouvelle fonction CMake dans Gaudi pour créer les bibliothèques statiques :
+        \item Ajout d'une fonction CMake dans Gaudi pour créer les bibliothèques statiques :
               \begin{itemize}
                   \item Adaptée de celle pour les bibliothèques partagées.
                   \item \verb'gaudi_add_library' $\Rightarrow$ \verb'gaudi_add_static_library'.
-                  \item Remplacer \verb'SHARED' par \verb'STATIC' dans l'appel de la fonction CMake \verb'add_library'.
+                  \item Remplacement de \verb'SHARED' par \verb'STATIC' dans l'appel de la fonction CMake \verb'add_library'.
               \end{itemize}
     \end{itemize}
 \end{frame}
@@ -193,7 +190,7 @@
 \subsection{Modules statiques}
 
 \begin{frame}[fragile]
-    \frametitle{Static modules}
+    \frametitle{Difficultés avec les modules}
 
     Il faut en plus linker avec :
     \begin{itemize}
@@ -220,14 +217,15 @@
 
     \begin{center}
         \begin{tabular}{ c c c }
-            Optimisation & Amélioration & Intervalle de confiance ($2\sigma$) \\
-            Static       & $0.87\%$     & $\pm 0.60\%$
+            Amélioration & Intervalle de confiance ($2\sigma$) \\
+            $0.87\%$     & $\pm 0.60\%$
         \end{tabular}
     \end{center}
 
     \begin{itemize}
         \item Gains non significatifs.
         \item L'exécutable final passe de $ \sim 20 kB $ à $ 2.5 GB $ (\verb'opt+g').
+        \item Cette optimisation n'est pas retenue.
     \end{itemize}
 \end{frame}
 
@@ -244,22 +242,24 @@
 
     Le compilateur utilise des heuristiques pour optimiser certains éléments :
     \begin{itemize}
-        \item Inlining,
-        \item Ordonnancement des blocs,
-        \item Allocation des registres,
-        \item Spéculation sur les appels virtuels,
-        \item Séparation du code mort.
+        \item Inlining
+        \item Ordonnancement des blocs
+        \item Allocation des registres
+        \item Spéculation sur les appels virtuels
+        \item Séparation du code mort
     \end{itemize}
-    Ces optimisations peuvent multiplier la rapidité d'exécution.
-    Mais certains heuristiques peuvent être faux.
+    Ces optimisations permettent d'accélérer l'exécution du code.
+    Mais certaines heuristiques peuvent s'avérer contre-productives parfois.
 \end{frame}
 
 \begin{frame}
-    Une meilleure manière pour le compilateur serait de connaître le comportement à l'exécution.
+    \frametitle{Principe du profile-guided optimization}
+
+    Une meilleure solution serait de connaître le comportement à l'exécution afin d'affiner les heuristiques.
     Principe du PGO :
     \begin{itemize}
-        \item Compiler le programme avec instrumentation ;
-        \item Le faire tourner pour créer des profiles (compteurs) ;
+        \item Compiler le programme avec instrumentation.
+        \item Le faire tourner pour créer des profiles (compteurs).
         \item Recompiler le programme avec les profiles.
     \end{itemize}
 \end{frame}
@@ -285,8 +285,8 @@
     \frametitle{Étapes de compilation finales}
 
     \begin{itemize}
-        \item Compiler avec \verb'-fprofile-generate' ;
-        \item Faire tourner le programme sur des données représentatives ;
+        \item Compiler avec \verb'-fprofile-generate'.
+        \item Faire tourner le programme sur des données représentatives.
         \item Recompiler le programme avec \verb'-flto -fprofile-use -fprofile-correction'.
     \end{itemize}
 \end{frame}
@@ -305,7 +305,7 @@
 
     \begin{itemize}
         \item Gains significatifs.
-        \item Intéressant en production.
+        \item Devrait passer en production.
     \end{itemize}
 \end{frame}
 
@@ -342,18 +342,18 @@
     La représentation est une approximation du nombre.
 \end{frame}
 
-\subsubsection{IEEE 754}
+\subsubsection{Norme IEEE 754}
 
 \begin{frame}
-    \frametitle{IEEE 754}
+    \frametitle{Norme IEEE 754}
 
     \begin{itemize}
-        \item Formats 32 bits ($\sim 7.2$ digits) et 64 bits ($\sim 15.9$ digits) ;
+        \item Formats 32 bits ($\sim 7.2$ digits) et 64 bits ($\sim 15.9$ digits).
         \item Règles spéciales :
               \begin{itemize}
-                  \item Nombres dénormalisés (très proches de $0$) ;
-                  \item Valeurs spéciales : -Inf, +Inf, NaN ;
-                  \item Règles d'approximation ;
+                  \item Nombres dénormalisés (très proches de $0$).
+                  \item Valeurs spéciales : -Inf, +Inf, NaN.
+                  \item Règles d'approximation.
                   \item Gestion des exceptions.
               \end{itemize}
     \end{itemize}
@@ -362,6 +362,8 @@
 \subsection{Exactitude de certains calculs}
 
 \begin{frame}[fragile]
+    \frametitle{Danger des comparaisons entre flottants}
+
     \begin{lstlisting}[language=c++]
 if (f(x) != 0.)
     return 5./f(x);
@@ -377,6 +379,8 @@ else
 \end{frame}
 
 \begin{frame}[fragile]
+    \frametitle{Utilisation de isfinite}
+
     Utiliser \verb'isfinite' après le calcul.
 
     \begin{lstlisting}[language=c++]
@@ -391,7 +395,7 @@ else
 \subsection{Fast-math}
 
 \begin{frame}[fragile]
-    \frametitle{Principe}
+    \frametitle{Fast-math}
 
     \begin{itemize}
         \item Ensemble d'options.
@@ -400,7 +404,7 @@ else
                   \item $a+b-a = b$.
                   \item Avec $a = 10^6$ et $b = 10^{-6}$,
 
-                        Le standards donne $0$, fast-math donne $10^{-6}$.
+                        Le standard donne $0$, fast-math donne $10^{-6}$.
               \end{itemize}
         \item Résultats différents mais pas plus faux que sans \verb'fast-math'.
     \end{itemize}
@@ -411,7 +415,7 @@ else
 \subsubsection{Gestion des exceptions}
 
 \begin{frame}[fragile]
-    \frametitle{Options}
+    \frametitle{Principales options de fast-math}
 
     \begin{itemize}
         \item no-math-errno : ne pas utiliser la variable \verb'erno'.
@@ -435,21 +439,32 @@ else
             Optimisation                    & Amélioration & Intervalle de confiance ($2\sigma$) \\
             Fast-math\footnotemark[1]       & $5.06\%$     & $\pm 0.98\%$                        \\
             Associative-math                & $4.73\%$     & $\pm 1.51\%$                        \\
-            (PGO)                           & $6.74\%$     & $\pm 1.44\%$                        \\
+            PGO                             & $6.74\%$     & $\pm 1.44\%$                        \\
             Fast-math\footnotemark[1] + PGO & $11.02\%$    & $\pm 0.98\%$
         \end{tabular}
     \end{center}
 
     \begin{itemize}
-        \item Gains significatifs
-        \item qui se cumulent avec le PGO.
+        \item Gains significatifs principalement du à associative-math et qui se cumulent avec le PGO.
+        \item Certains algorithmes sensibles ont des résultats différents et doivent donc être corrigés.
     \end{itemize}
 
-    \footnotetext[1]{sans finite-math-only et unsafe-math-optimizations\newline}
+    \footnotetext[1]{sans finite-math-only ni unsafe-math-optimizations\newline}
 \end{frame}
 
 \part{Conclusion}
 \section*{Conclusion}
+
+\begin{frame}[fragile]
+    \frametitle{Apports du stage}
+
+    \begin{itemize}
+        \item Expérience de travail au sein d'un laboratoire de recherche.
+        \item Sur des projets de très grande taille.
+        \item Appris beaucoup de choses, notamment sur le fonctionnement bas niveau de Linux et du C++.
+        \item Pratique de l'anglais.
+    \end{itemize}
+\end{frame}
 
 \begin{frame}[fragile]
     \frametitle{Conclusion}
@@ -458,17 +473,6 @@ else
         \item Utiliser des bibliothèques et modules statiques ne semble pas améliorer les performances et mène à des bugs.
         \item Utiliser LTO \& PGO rend le programme plus rapide.
         \item Fast-math améliore les performances et permet de détecter des instabilités numériques.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-    \frametitle{Apports du stage}
-
-    \begin{itemize}
-        \item Expérience de travail au sein d'un laboratoire de recherche ;
-        \item sur des projets de très grande taille.
-        \item Appris beaucoup de choses, notamment sur le fonctionnement bas niveau de Linux et du C++.
-        \item Pratique de l'anglais.
     \end{itemize}
 \end{frame}
 
