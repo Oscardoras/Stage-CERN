@@ -177,7 +177,7 @@
     \begin{itemize}
         \item Programmes découpés en morceaux ;
         \item Facilité de développement \& raisons historiques ;
-        \item Plusieurs centaines.
+        \item Plusieurs centaines de bibliothèques.
     \end{itemize}
 \end{frame}
 
@@ -274,11 +274,11 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
 
     Le compilateur utilise des heuristiques pour optimiser certains éléments :
     \begin{itemize}
-        \item Inlining
-        \item Ordonnancement des blocs
-        \item Allocation des registres
-        \item Spéculation sur les appels virtuels
-        \item Séparation du code mort
+        \item Inlining,
+        \item Ordonnancement des blocs,
+        \item Allocation des registres,
+        \item Spéculation sur les appels virtuels,
+        \item Séparation du code mort.
     \end{itemize}
     Ces optimisations peuvent multiplier la rapidité d'exécution.
     Mais certains heuristiques peuvent être faux.
@@ -288,8 +288,8 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
     Une meilleure manière pour le compilateur serait de connaître le comportement à l'exécution.
     Principe du PGO :
     \begin{itemize}
-        \item Compiler le programme avec instrumentation.
-        \item Le faire tourner pour créer des profiles (compteurs).
+        \item Compiler le programme avec instrumentation ;
+        \item Le faire tourner pour créer des profiles (compteurs) ;
         \item Recompiler le programme avec les profiles.
     \end{itemize}
 \end{frame}
