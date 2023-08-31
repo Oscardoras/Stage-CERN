@@ -55,10 +55,6 @@
 \section*{Introduction}
 
 \begin{frame}
-    \includegraphics[width=\textwidth]{video/CERN.png}
-\end{frame}
-
-\begin{frame}
     \includegraphics[width=\textwidth]{video/Geneva.png}
 \end{frame}
 
@@ -67,39 +63,11 @@
 \end{frame}
 
 \begin{frame}
-    \includegraphics[width=\textwidth]{video/linac.png}
-\end{frame}
-
-\begin{frame}
-    \includegraphics[width=\textwidth]{video/psb.png}
-\end{frame}
-
-\begin{frame}
-    \includegraphics[width=\textwidth]{video/ps.png}
-\end{frame}
-
-\begin{frame}
-    \includegraphics[width=\textwidth]{video/sps.png}
-\end{frame}
-
-\begin{frame}
     \includegraphics[width=\textwidth]{video/lhc.png}
 \end{frame}
 
 \begin{frame}
     \includegraphics[width=\textwidth]{video/detectors.png}
-\end{frame}
-
-\begin{frame}
-    \includegraphics[width=\textwidth]{video/collisions.png}
-\end{frame}
-
-\begin{frame}
-    \includegraphics[width=\textwidth]{video/trigger1.png}
-\end{frame}
-
-\begin{frame}
-    \includegraphics[width=\textwidth]{video/trigger2.png}
 \end{frame}
 
 \begin{frame}
@@ -150,12 +118,22 @@
 \end{frame}
 
 \begin{frame}
+    \frametitle{Pile LHCb}
+
+    \begin{itemize}
+        \item Centaines de contributeurs ;
+        \item Millions de lignes de codes
+        \item dont certaines ont plus de 20 ans.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
     \frametitle{Objectif du stage}
 
     \begin{itemize}
         \item Le traitement a un coût important ;
         \item Besoin d'accélérer / optimiser les calculs ;
-        \item Plusieurs méthodes envisagées.
+        \item Plusieurs méthodes étudiées.
     \end{itemize}
 \end{frame}
 
@@ -172,7 +150,7 @@
 \end{frame}
 
 \begin{frame}[fragile]
-    \frametitle{Explications}
+    \frametitle{Structure du software}
 
     \begin{itemize}
         \item Programmes découpés en morceaux ;
@@ -236,21 +214,6 @@
 \end{frame}
 
 \begin{frame}[fragile]
-    \frametitle{Autres limitations de ce prototype}
-
-    \begin{itemize}
-        \item L'exécutable final passe de $ \sim 20 kB $ à $ 2.5 GB $ (\verb'opt+g').
-        \item La méthode standard pour démarrer un test avec Python ne marche pas.
-              \begin{itemize}
-                  \item Il faut démarrer l'exécutable en lui donnant un fichier de configuration en paramètre.
-              \end{itemize}
-              \begin{lstlisting}[language=bash,basicstyle=\scriptsize,breaklines]
-build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
-            \end{lstlisting}
-    \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
     \frametitle{Gain de performance}
 
     \begin{center}
@@ -259,6 +222,11 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
             Static       & $0.87\%$     & $\pm 0.60\%$
         \end{tabular}
     \end{center}
+
+    \begin{itemize}
+        \item Gains non significatifs.
+        \item L'exécutable final passe de $ \sim 20 kB $ à $ 2.5 GB $ (\verb'opt+g').
+    \end{itemize}
 \end{frame}
 
 \section{Profile-guided optimization}
@@ -332,6 +300,11 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
             Static LTO \& PGO & $6.88\%$     & $\pm 0.83\%$
         \end{tabular}
     \end{center}
+
+    \begin{itemize}
+        \item Gains significatifs.
+        \item Intéressant en production.
+    \end{itemize}
 \end{frame}
 
 \section{Fast-math}
@@ -387,21 +360,6 @@ build/run ./build/Gaudi/Gaudi/Gaudi_static options.json
 \subsection{Exactitude de certains calculs}
 
 \begin{frame}[fragile]
-    \frametitle{Égalité entre flottants}
-
-    \begin{itemize}
-        \item Ne jamais tester l'égalité de deux flottants.
-        \item Options GCC \verb'-Wfloat-equal'.
-              Ex. dans LHCb:
-              \begin{itemize}
-                  \item \verb'0 == ip'
-                  \item \verb'0.5 == ip'
-                  \item \verb'lhs.m_energy == rhs.m_energy'
-              \end{itemize}
-    \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
     \begin{lstlisting}[language=c++]
 if (f(x) != 0.)
     return 5./f(x);
@@ -412,19 +370,6 @@ else
     \begin{itemize}
         \item Peut-être que les deux \verb'f(x)' ne seront pas les mêmes,
         \item à cause de différentes optimisations.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-    \begin{lstlisting}[language=c++]
-float y = f(x);
-if (y != 0.)
-    return 5./y;
-else
-    ...
-    \end{lstlisting}
-
-    \begin{itemize}
         \item Si \verb'f(x)' est proche de $0$ alors \verb'5./y' peut valoir \verb'+Inf'.
     \end{itemize}
 \end{frame}
@@ -493,13 +438,12 @@ else
         \end{tabular}
     \end{center}
 
+    \begin{itemize}
+        \item Gains significatifs
+        \item qui se cumulent avec le PGO.
+    \end{itemize}
+
     \footnotetext[1]{sans finite-math-only et unsafe-math-optimizations\newline}
-\end{frame}
-
-\begin{frame}[fragile]
-    \frametitle{Erreur relative des compteurs}
-
-    \includegraphics[width=\textwidth, center]{fast-math_difference.png}
 \end{frame}
 
 \part{Conclusion}
@@ -519,8 +463,9 @@ else
     \frametitle{Apports du stage}
 
     \begin{itemize}
-        \item Travail au sein d'un laboratoire de recherche ;
-        \item Appris beaucoup de choses, notamment sur le fonctionnement bas niveau de Linux et du C++ ;
+        \item Expérience de travail au sein d'un laboratoire de recherche ;
+        \item sur des projets de très grande taille.
+        \item Appris beaucoup de choses, notamment sur le fonctionnement bas niveau de Linux et du C++.
         \item Pratique de l'anglais.
     \end{itemize}
 \end{frame}
